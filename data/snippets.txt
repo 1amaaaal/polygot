@@ -1,0 +1,914 @@
+# Polyglot snippets
+#
+# Each snippet starts with a header line naming its language exactly as it is
+# spelled in data/languages.js:
+#
+#   =====[ Python ]=====
+#
+# followed by 5 to 14 lines of code. Lines before the first header (like these)
+# are ignored. Write snippets yourself, don't copy them from elsewhere, and keep
+# the language name out of the code and comments.
+#
+# New snippets go at the END of the file: the daily order depends on the
+# position of existing snippets (see CONTRIBUTING.md).
+
+=====[ Python ]=====
+def fizzbuzz(n):
+    for i in range(1, n + 1):
+        out = ""
+        if i % 3 == 0:
+            out += "Fizz"
+        if i % 5 == 0:
+            out += "Buzz"
+        print(out or i)
+
+fizzbuzz(15)
+
+=====[ JavaScript ]=====
+const debounce = (fn, ms) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+};
+
+window.addEventListener("resize", debounce(() => console.log("resized"), 200));
+
+=====[ Haskell ]=====
+quicksort :: Ord a => [a] -> [a]
+quicksort [] = []
+quicksort (p:xs) = quicksort smaller ++ [p] ++ quicksort larger
+  where
+    smaller = filter (< p) xs
+    larger  = filter (>= p) xs
+
+main :: IO ()
+main = print (quicksort [3, 1, 4, 1, 5, 9])
+
+=====[ SQL ]=====
+SELECT c.name, COUNT(o.id) AS orders
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.id
+WHERE c.country = 'NL'
+GROUP BY c.name
+HAVING COUNT(o.id) > 2
+ORDER BY orders DESC;
+
+=====[ Rust ]=====
+fn main() {
+    let words = vec!["apple", "banana", "cherry"];
+    let lengths: Vec<usize> = words
+        .iter()
+        .map(|w| w.len())
+        .collect();
+    println!("{:?}", lengths);
+}
+
+=====[ Ruby ]=====
+class Dog
+  attr_reader :name
+
+  def initialize(name)
+    @name = name
+  end
+
+  def speak
+    "#{name} says woof"
+  end
+end
+
+puts Dog.new("Rex").speak
+
+=====[ Java ]=====
+public class Main {
+    public static void main(String[] args) {
+        List<String> names = new ArrayList<>();
+        names.add("Ada");
+        names.add("Grace");
+        names.add("Linus");
+        for (String name : names) {
+            System.out.println("Hello, " + name);
+        }
+    }
+}
+
+=====[ Clojure ]=====
+(defn fizzbuzz [n]
+  (cond
+    (zero? (mod n 15)) "FizzBuzz"
+    (zero? (mod n 3)) "Fizz"
+    (zero? (mod n 5)) "Buzz"
+    :else n))
+
+(doseq [i (range 1 16)]
+  (println (fizzbuzz i)))
+
+=====[ Go ]=====
+package main
+
+import "fmt"
+
+func main() {
+    nums := []int{1, 2, 3, 4, 5}
+    total := 0
+    for _, n := range nums {
+        total += n
+    }
+    fmt.Println("total:", total)
+}
+
+=====[ C ]=====
+#include <stdio.h>
+
+int main(void) {
+    int numbers[] = {4, 8, 15, 16, 23, 42};
+    int sum = 0;
+    for (int i = 0; i < 6; i++) {
+        sum += numbers[i];
+    }
+    printf("Sum: %d\n", sum);
+    return 0;
+}
+
+=====[ Lua ]=====
+local function greet(name)
+  return "Hello, " .. name
+end
+
+local names = {"Ada", "Linus", "Grace"}
+for i, name in ipairs(names) do
+  print(i, greet(name))
+end
+
+=====[ TypeScript ]=====
+interface User {
+  id: number;
+  name: string;
+  email?: string;
+}
+
+function greet(user: User): string {
+  return "Hello, " + user.name;
+}
+
+const u: User = { id: 1, name: "Ada" };
+console.log(greet(u));
+
+=====[ Prolog ]=====
+parent(tom, bob).
+parent(bob, ann).
+parent(bob, pat).
+
+grandparent(X, Z) :-
+    parent(X, Y),
+    parent(Y, Z).
+
+% ?- grandparent(tom, Who).
+
+=====[ C# ]=====
+using System;
+using System.Linq;
+
+var words = new[] { "apple", "banana", "cherry", "date" };
+var longOnes = words
+    .Where(w => w.Length > 5)
+    .Select(w => w.ToUpper());
+
+foreach (var w in longOnes)
+    Console.WriteLine(w);
+
+=====[ Bash ]=====
+# count the lines in every non-empty log file
+for file in *.log; do
+  if [[ -s "$file" ]]; then
+    lines=$(wc -l < "$file")
+    echo "$file has $lines lines"
+  fi
+done
+
+=====[ Kotlin ]=====
+data class User(val name: String, val age: Int)
+
+fun main() {
+    val users = listOf(User("Ada", 36), User("Alan", 41))
+    val adults = users.filter { it.age >= 18 }
+    adults.forEach { println("${it.name} is ${it.age}") }
+}
+
+=====[ COBOL ]=====
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HELLO.
+       PROCEDURE DIVISION.
+           DISPLAY "Hello, world!".
+           STOP RUN.
+
+=====[ C++ ]=====
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> v = {5, 3, 9, 1};
+    std::sort(v.begin(), v.end());
+    for (const auto& x : v) {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
+}
+
+=====[ Elixir ]=====
+defmodule Math do
+  def factorial(0), do: 1
+  def factorial(n) when n > 0 do
+    n * factorial(n - 1)
+  end
+end
+
+IO.puts Math.factorial(5)
+
+=====[ Swift ]=====
+struct Point {
+    var x: Double
+    var y: Double
+
+    func distance(to other: Point) -> Double {
+        let dx = x - other.x
+        let dy = y - other.y
+        return (dx * dx + dy * dy).squareRoot()
+    }
+}
+
+let a = Point(x: 0, y: 0)
+print(a.distance(to: Point(x: 3, y: 4)))
+
+=====[ R ]=====
+scores <- c(72, 88, 95, 61, 79)
+names(scores) <- c("ann", "bob", "cat", "dan", "eve")
+
+passed <- scores[scores >= 70]
+print(mean(passed))
+barplot(scores, main = "Exam scores")
+
+=====[ PHP ]=====
+$users = [
+    ['name' => 'Ada', 'role' => 'admin'],
+    ['name' => 'Bob', 'role' => 'user'],
+];
+
+foreach ($users as $user) {
+    echo "{$user['name']} is a {$user['role']}\n";
+}
+
+=====[ OCaml ]=====
+let rec sum = function
+  | [] -> 0
+  | x :: rest -> x + sum rest
+
+let () =
+  let total = sum [1; 2; 3; 4] in
+  Printf.printf "Total: %d\n" total
+
+=====[ Scala ]=====
+case class Order(item: String, qty: Int, price: Double)
+
+val orders = List(
+  Order("pen", 3, 1.5),
+  Order("book", 1, 12.0)
+)
+
+val total = orders.map(o => o.qty * o.price).sum
+println(s"Total: $total")
+
+=====[ x86 Assembly ]=====
+section .data
+    msg db "Hello", 10
+    len equ $ - msg
+
+section .text
+    global _start
+_start:
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, msg
+    mov edx, len
+    int 0x80
+
+=====[ Julia ]=====
+function collatz(n::Int)
+    steps = 0
+    while n != 1
+        n = iseven(n) ? n ÷ 2 : 3n + 1
+        steps += 1
+    end
+    return steps
+end
+
+println(collatz(27))
+
+=====[ Perl ]=====
+use strict;
+use warnings;
+
+my %ages = (alice => 31, bob => 27);
+
+foreach my $name (sort keys %ages) {
+    print "$name is $ages{$name}\n";
+}
+
+=====[ Dart ]=====
+void main() {
+  var fruits = ['apple', 'banana', 'kiwi'];
+  for (var fruit in fruits) {
+    print('I like $fruit');
+  }
+  final upper = fruits.map((f) => f.toUpperCase()).toList();
+  print(upper);
+}
+
+=====[ Scheme ]=====
+(define (factorial n)
+  (if (= n 0)
+      1
+      (* n (factorial (- n 1)))))
+
+(display (factorial 10))
+(newline)
+
+=====[ PowerShell ]=====
+$files = Get-ChildItem -Path . -Filter *.txt
+
+foreach ($file in $files) {
+    $size = [math]::Round($file.Length / 1KB, 2)
+    Write-Host "$($file.Name): $size KB"
+}
+
+=====[ Fortran ]=====
+program average
+  implicit none
+  real :: values(5) = [2.0, 4.0, 6.0, 8.0, 10.0]
+  integer :: i
+  real :: total = 0.0
+
+  do i = 1, 5
+    total = total + values(i)
+  end do
+  print *, 'Average:', total / 5
+end program average
+
+=====[ Zig ]=====
+const std = @import("std");
+
+pub fn main() void {
+    const nums = [_]i32{ 3, 1, 4, 1, 5 };
+    var sum: i32 = 0;
+    for (nums) |n| {
+        sum += n;
+    }
+    std.debug.print("sum = {d}\n", .{sum});
+}
+
+=====[ Pascal ]=====
+program Squares;
+var
+  i: Integer;
+begin
+  for i := 1 to 5 do
+    WriteLn(i, ' squared is ', i * i);
+end.
+
+=====[ MATLAB ]=====
+x = linspace(0, 2*pi, 100);
+y = sin(x);
+
+plot(x, y, 'r-');
+title('Sine wave');
+xlabel('x');
+ylabel('sin(x)');
+
+=====[ VB.NET ]=====
+Module Program
+    Sub Main()
+        Dim names() As String = {"Ada", "Linus"}
+        For Each name As String In names
+            Console.WriteLine("Hello, " & name)
+        Next
+    End Sub
+End Module
+
+=====[ Python ]=====
+from collections import Counter
+
+def top_words(text, k=3):
+    words = text.lower().split()
+    counts = Counter(words)
+    return counts.most_common(k)
+
+print(top_words("the cat and the hat and the bat"))
+
+=====[ Go ]=====
+func divide(a, b float64) (float64, error) {
+    if b == 0 {
+        return 0, errors.New("division by zero")
+    }
+    return a / b, nil
+}
+
+result, err := divide(10, 0)
+if err != nil {
+    log.Fatal(err)
+}
+
+=====[ Haskell ]=====
+data Shape = Circle Double | Square Double
+
+area :: Shape -> Double
+area (Circle r) = pi * r * r
+area (Square s) = s * s
+
+main :: IO ()
+main = do
+  let shapes = [Circle 1.0, Square 2.0]
+  mapM_ (print . area) shapes
+
+=====[ JavaScript ]=====
+async function getUser(id) {
+  const res = await fetch("/api/users/" + id);
+  if (!res.ok) throw new Error("Request failed");
+  const user = await res.json();
+  return user.name;
+}
+
+getUser(42).then(console.log).catch(console.error);
+
+=====[ Java ]=====
+public class BankAccount {
+    private double balance;
+
+    public void deposit(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        balance += amount;
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+}
+
+=====[ SQL ]=====
+CREATE TABLE books (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  year INTEGER
+);
+
+INSERT INTO books (title, year) VALUES ('Dune', 1965);
+UPDATE books SET year = 1966 WHERE title = 'Dune';
+
+=====[ Rust ]=====
+#[derive(Debug)]
+enum Shape {
+    Circle(f64),
+    Rect { w: f64, h: f64 },
+}
+
+fn area(s: &Shape) -> f64 {
+    match s {
+        Shape::Circle(r) => 3.14159 * r * r,
+        Shape::Rect { w, h } => w * h,
+    }
+}
+
+=====[ Ruby ]=====
+numbers = (1..10).to_a
+
+evens = numbers.select(&:even?)
+squares = evens.map { |n| n * n }
+
+puts squares.sum
+squares.each_with_index do |sq, i|
+  puts "#{i}: #{sq}"
+end
+
+=====[ C ]=====
+#include <stdlib.h>
+#include <string.h>
+
+char *duplicate(const char *src) {
+    size_t len = strlen(src) + 1;
+    char *copy = malloc(len);
+    if (copy == NULL) {
+        return NULL;
+    }
+    memcpy(copy, src, len);
+    return copy;
+}
+
+=====[ Lua ]=====
+local Player = {}
+Player.__index = Player
+
+function Player.new(name)
+  local self = setmetatable({}, Player)
+  self.name = name
+  self.hp = 100
+  return self
+end
+
+function Player:hit(dmg)
+  self.hp = self.hp - dmg
+end
+
+=====[ TypeScript ]=====
+type Result<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: string };
+
+function parseAge(input: string): Result<number> {
+  const n = Number(input);
+  if (Number.isNaN(n)) return { ok: false, error: "not a number" };
+  return { ok: true, value: n };
+}
+
+=====[ Prolog ]=====
+len([], 0).
+len([_|T], N) :-
+    len(T, N0),
+    N is N0 + 1.
+
+member_of(X, [X|_]).
+member_of(X, [_|T]) :- member_of(X, T).
+
+=====[ C# ]=====
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; init; }
+
+    public override string ToString() => $"{Name} ({Age})";
+}
+
+var p = new Person { Name = "Grace", Age = 85 };
+Console.WriteLine(p);
+
+=====[ Kotlin ]=====
+fun describe(x: Any?): String = when (x) {
+    is Int -> "integer $x"
+    is String -> "string of length ${x.length}"
+    null -> "nothing"
+    else -> "something else"
+}
+
+println(describe(42))
+println(describe("hello"))
+
+=====[ Bash ]=====
+backup_dir="$HOME/backups/$(date +%F)"
+mkdir -p "$backup_dir"
+
+if cp -r ./project "$backup_dir"; then
+  echo "Backup saved to $backup_dir"
+else
+  echo "Backup failed" >&2
+  exit 1
+fi
+
+=====[ COBOL ]=====
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-COUNT   PIC 9(2) VALUE 0.
+       PROCEDURE DIVISION.
+           PERFORM UNTIL WS-COUNT = 5
+               ADD 1 TO WS-COUNT
+               DISPLAY "Count: " WS-COUNT
+           END-PERFORM.
+           STOP RUN.
+
+=====[ C++ ]=====
+template <typename T>
+class Box {
+public:
+    explicit Box(T value) : value_(value) {}
+    T get() const { return value_; }
+private:
+    T value_;
+};
+
+Box<std::string> b("hello");
+std::cout << b.get() << '\n';
+
+=====[ Elixir ]=====
+"the quick brown fox"
+|> String.split()
+|> Enum.map(&String.capitalize/1)
+|> Enum.join(" ")
+|> IO.puts()
+
+case File.read("notes.txt") do
+  {:ok, text} -> IO.puts(text)
+  {:error, reason} -> IO.puts("Error: #{reason}")
+end
+
+=====[ Swift ]=====
+let names = ["Ada", "Grace", "Linus"]
+
+for (index, name) in names.enumerated() {
+    print("\(index + 1). \(name)")
+}
+
+if let first = names.first, first.hasPrefix("A") {
+    print("Starts with A")
+}
+
+=====[ R ]=====
+df <- data.frame(
+  city = c("Oslo", "Lima", "Pune"),
+  temp = c(4, 19, 27)
+)
+
+warm <- subset(df, temp > 10)
+summary(warm$temp)
+
+=====[ PHP ]=====
+function slugify(string $text): string {
+    $text = strtolower(trim($text));
+    $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+    return trim($text, '-');
+}
+
+echo slugify("Hello World, again!");
+
+=====[ OCaml ]=====
+type color = Red | Green | Blue
+
+let to_string c =
+  match c with
+  | Red -> "red"
+  | Green -> "green"
+  | Blue -> "blue"
+
+let () = List.iter (fun c -> print_endline (to_string c)) [Red; Green; Blue]
+
+=====[ Scala ]=====
+def classify(n: Int): String = n match {
+  case 0 => "zero"
+  case x if x < 0 => "negative"
+  case x if x % 2 == 0 => "even"
+  case _ => "odd"
+}
+
+(1 to 5).foreach(n => println(classify(n)))
+
+=====[ x86 Assembly ]=====
+; add up the numbers 1 to 10
+    xor eax, eax
+    mov ecx, 10
+add_loop:
+    add eax, ecx
+    loop add_loop
+; eax now holds 55
+    ret
+
+=====[ Julia ]=====
+struct Vec2
+    x::Float64
+    y::Float64
+end
+
+Base.:+(a::Vec2, b::Vec2) = Vec2(a.x + b.x, a.y + b.y)
+
+v = Vec2(1, 2) + Vec2(3, 4)
+squares = [i^2 for i in 1:5]
+println(v, " ", squares)
+
+=====[ Perl ]=====
+my @lines = ("error: disk full", "ok", "error: timeout");
+
+for my $line (@lines) {
+    if ($line =~ /^error: (.+)$/) {
+        print "Problem found: $1\n";
+    }
+}
+
+=====[ Dart ]=====
+class Counter {
+  int _count = 0;
+
+  int get count => _count;
+
+  void increment() => _count++;
+}
+
+Future<void> main() async {
+  final c = Counter()..increment()..increment();
+  await Future.delayed(const Duration(seconds: 1));
+  print(c.count);
+}
+
+=====[ Scheme ]=====
+(define (my-map f lst)
+  (if (null? lst)
+      '()
+      (cons (f (car lst))
+            (my-map f (cdr lst)))))
+
+(display (my-map (lambda (x) (* x x)) '(1 2 3 4)))
+
+=====[ PowerShell ]=====
+$limit = 100
+
+Get-Process |
+    Where-Object { $_.CPU -gt $limit } |
+    Sort-Object CPU -Descending |
+    Select-Object -First 5 Name, CPU |
+    Format-Table -AutoSize
+
+=====[ Fortran ]=====
+subroutine swap(a, b)
+  implicit none
+  integer, intent(inout) :: a, b
+  integer :: tmp
+  tmp = a
+  a = b
+  b = tmp
+end subroutine swap
+
+=====[ Zig ]=====
+fn divide(a: i32, b: i32) !i32 {
+    if (b == 0) return error.DivisionByZero;
+    return @divTrunc(a, b);
+}
+
+pub fn main() !void {
+    const result = try divide(10, 2);
+    std.debug.print("{d}\n", .{result});
+}
+
+=====[ Pascal ]=====
+function Max(a, b: Integer): Integer;
+begin
+  if a > b then
+    Max := a
+  else
+    Max := b;
+end;
+
+begin
+  WriteLn(Max(7, 3));
+end.
+
+=====[ MATLAB ]=====
+A = [1 2; 3 4];
+b = [5; 6];
+
+x = A \ b;
+disp(x);
+
+for k = 1:3
+    fprintf('Iteration %d\n', k);
+end
+
+=====[ VB.NET ]=====
+Function Grade(score As Integer) As String
+    Select Case score
+        Case Is >= 90
+            Return "A"
+        Case Is >= 75
+            Return "B"
+        Case Else
+            Return "C"
+    End Select
+End Function
+
+=====[ Python ]=====
+class Stack:
+    def __init__(self):
+        self.items = []
+
+    def push(self, item):
+        self.items.append(item)
+
+    def pop(self):
+        return self.items.pop() if self.items else None
+
+=====[ JavaScript ]=====
+const scores = [88, 92, 79, 95];
+const curved = scores
+  .map(s => Math.min(100, s + 5))
+  .filter(s => s >= 90);
+
+console.log(curved.length + " students got an A");
+localStorage.setItem("curved", JSON.stringify(curved));
+
+=====[ Rust ]=====
+use std::collections::HashMap;
+
+fn main() {
+    let mut counts = HashMap::new();
+    for word in "a b a c b a".split_whitespace() {
+        *counts.entry(word).or_insert(0) += 1;
+    }
+    if let Some(n) = counts.get("a") {
+        println!("a appears {} times", n);
+    }
+}
+
+=====[ Java ]=====
+String evens = IntStream.rangeClosed(1, 10)
+    .filter(n -> n % 2 == 0)
+    .mapToObj(Integer::toString)
+    .collect(Collectors.joining(", "));
+
+System.out.println(evens);
+System.out.printf("%d evens found%n", evens.split(", ").length);
+
+=====[ Go ]=====
+results := make(chan int)
+
+for i := 1; i <= 3; i++ {
+    go func(n int) {
+        results <- n * n
+    }(i)
+}
+
+for i := 0; i < 3; i++ {
+    fmt.Println(<-results)
+}
+
+=====[ C ]=====
+struct Node {
+    int value;
+    struct Node *next;
+};
+
+int length(struct Node *head) {
+    int count = 0;
+    while (head != NULL) {
+        count++;
+        head = head->next;
+    }
+    return count;
+}
+
+=====[ TypeScript ]=====
+enum Direction { Up, Down, Left, Right }
+
+function move(dir: Direction, steps: number = 1): [number, number] {
+  switch (dir) {
+    case Direction.Up: return [0, -steps];
+    case Direction.Down: return [0, steps];
+    case Direction.Left: return [-steps, 0];
+    case Direction.Right: return [steps, 0];
+  }
+}
+
+=====[ C# ]=====
+public async Task<string> DownloadAsync(string url)
+{
+    using var client = new HttpClient();
+    try
+    {
+        return await client.GetStringAsync(url);
+    }
+    catch (HttpRequestException ex)
+    {
+        Console.WriteLine($"Failed: {ex.Message}");
+        return string.Empty;
+    }
+}
+
+=====[ C++ ]=====
+#include <memory>
+#include <map>
+
+auto cache = std::make_unique<std::map<std::string, int>>();
+(*cache)["apples"] = 3;
+(*cache)["pears"] += 2;
+
+for (const auto& [key, count] : *cache) {
+    std::cout << key << ": " << count << "\n";
+}
+
+=====[ Ruby ]=====
+def fetch_config(path)
+  File.read(path)
+rescue Errno::ENOENT
+  warn "Missing file: #{path}"
+  nil
+end
+
+config = fetch_config("settings.yml") || "default"
+puts config.lines.first
+
+=====[ Clojure ]=====
+(def inventory {:apples 3 :pears 0 :plums 7})
+
+(defn in-stock [inv]
+  (->> inv
+       (filter (fn [[_ qty]] (pos? qty)))
+       (map key)
+       (sort)))
+
+(println (in-stock inventory))

@@ -1,0 +1,12 @@
+{
+  "name": "polyglot",
+  "version": "1.0.0",
+  "description": "The daily guess-the-programming-language game",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "python3 -m http.server 8000"
+  },
+  "license": "MIT"
+}
