@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:title" content="Polyglot: the daily guess-the-language game">
+  <meta property="og:description" content="A new code snippet every day. Can you name the language in six guesses?">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://1amaaaal.github.io/polygot/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+  <title>Collection · Polyglot</title>
+  <meta name="description" content="Your Polyglot collection: solve a puzzle in every language.">
+  <script type="module" src="src/collection.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <main class="wrap">
+      <h1 class="page-title">Your collection</h1>
+      <p class="lead" id="collection-summary"></p>
+      <div class="progress" aria-hidden="true"><div class="progress-bar" id="collection-bar"></div></div>
+      <div id="collection-groups"></div>
+    </main>
+    <aside class="sidebar" id="sidebar" aria-label="Profile and leaderboard"></aside>
+  </div>
+  <footer class="footer">
+    <a href="https://github.com/1amaaaal/polygot">Source on GitHub</a> · add a snippet, fix a fact, or star it if you like it
+  </footer>
+</body>
+</html>

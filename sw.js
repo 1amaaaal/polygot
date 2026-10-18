@@ -1,0 +1,42 @@
+// Offline support. Every file is cached on install; after that, pages load
+// from the cache instantly and are refreshed from the network in the
+// background ("stale while revalidate"). Bump CACHE when files are renamed
+// or removed so old caches get cleaned up.
+
+const CACHE = "polyglot-v2";
+const ASSETS = [
+  "./", "index.html", "play.html", "collection.html", "languages.html", "help.html",
+  "style.css", "manifest.webmanifest",
+  "data/languages.js", "data/snippets.txt",
+  "src/game.js", "src/highlight.js", "src/layout.js", "src/leaderboard.js", "src/share-image.js",
+  "src/store.js", "src/play.js", "src/home.js", "src/collection.js", "src/languages-page.js", "src/help.js",
+  "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(caches.keys()
+    .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method !== "GET" || new URL(request.url).origin !== location.origin) return;
+  event.respondWith(caches.open(CACHE).then(async (cache) => {
+    // Challenge links carry a ?c= query, but the page itself is the same.
+    const cached = await cache.match(request, { ignoreSearch: request.mode === "navigate" });
+    const fresh = fetch(request).then((response) => {
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    }).catch(() => cached);
+    if (cached) {
+      event.waitUntil(fresh);
+      return cached;
+    }
+    return fresh;
+  }));
+});

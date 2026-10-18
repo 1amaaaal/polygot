@@ -46,7 +46,7 @@ export function dayNumber(date = new Date()) {
   return Math.max(0, Math.round((today - launch) / 86_400_000));
 }
 
-function mulberry32(seed) {
+export function mulberry32(seed) {
   return () => {
     seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -111,9 +111,13 @@ const EMOJI = {
   colorblind: { hit: "🟧", close: "🟦", miss: "⬛" },
 };
 
-export function shareText({ label, results, won, colorblind = false, url = "" }) {
+export function scoreLabel(results, won, hard = false) {
+  return `${won ? results.length : "X"}/${MAX_GUESSES}${hard ? "*" : ""}`;
+}
+
+export function shareText({ label, results, won, hard = false, colorblind = false, url = "" }) {
   const emoji = EMOJI[colorblind ? "colorblind" : "normal"];
-  const score = won ? `${results.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
+  const score = scoreLabel(results, won, hard);
   const rows = results.map((r) => TRAIT_KEYS.map((k) => emoji[r[k]]).join(""));
   return [`Polyglot ${label} ${score}`, "", ...rows, ...(url ? ["", url] : [])].join("\n");
 }
@@ -146,3 +150,69 @@ export function recordResult(stats, { day, won, guesses }) {
 export function currentStreak(stats, today) {
   return stats.lastWinDay !== null && today - stats.lastWinDay <= 1 ? stats.streak : 0;
 }
+
+// Points for the leaderboard: a win in 1 guess is worth 6, in 6 guesses 1.
+export function points(distribution) {
+  return distribution.reduce((sum, count, i) => sum + count * (MAX_GUESSES - i), 0);
+}
+
+// ---------- hard mode ----------
+// In hard mode every guess must be a language that could still be the
+// answer, given all the clues so far. A candidate fits a past guess if
+// comparing that guess against the candidate gives exactly the same clues.
+
+const TRAIT_LABELS = { paradigm: "Paradigm", typing: "Typing", execution: "Runs as", family: "Looks like" };
+
+export function hardModeViolation(candidate, history) {
+  for (const { guess, result } of history) {
+    const ifAnswer = compare(guess, candidate);
+    for (const key of ["paradigm", "typing", "execution", "family"]) {
+      if (ifAnswer[key] === result[key]) continue;
+      return result[key] === "hit"
+        ? `${TRAIT_LABELS[key]} must be ${guess[key]}`
+        : `${TRAIT_LABELS[key]} can't be ${guess[key]}`;
+    }
+    if (ifAnswer.year !== result.year || ifAnswer.yearArrow !== result.yearArrow) {
+      if (result.year === "hit") return `Year must be ${guess.year}`;
+      const side = result.yearArrow === "up" ? "after" : "before";
+      const range = result.year === "close" ? "within 5 years of" : "more than 5 years from";
+      return `Year must be ${side} ${guess.year} and ${range} it`;
+    }
+  }
+  return null;
+}
+
+// ---------- challenge links ----------
+// A challenge is a snippet plus the challenger's name and score, packed into
+// a URL-safe string. It's encoded rather than encrypted: it only hides the
+// answer from a casual glance at the link.
+
+function toBase64Url(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64Url(code) {
+  const binary = atob(code.replace(/-/g, "+").replace(/_/g, "/"));
+  return new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)));
+}
+
+export function encodeChallenge({ index, name = "", guesses = 0, won = false, hard = false }) {
+  return toBase64Url(JSON.stringify({ i: index, n: name, g: won ? guesses : 0, h: hard ? 1 : 0 }));
+}
+
+export function decodeChallenge(code, snippetCount) {
+  try {
+    const { i, n, g, h } = JSON.parse(fromBase64Url(code));
+    if (!Number.isInteger(i) || i < 0 || i >= snippetCount) return null;
+    if (!Number.isInteger(g) || g < 0 || g > MAX_GUESSES) return null;
+    return { index: i, name: typeof n === "string" ? n.slice(0, 39) : "", guesses: g, won: g > 0, hard: h === 1 };
+  } catch {
+    return null;
+  }
+}
+
+// GitHub usernames: 1-39 letters, digits or single hyphens, not at the ends.
+export const GITHUB_NAME = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;

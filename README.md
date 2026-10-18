@@ -33,8 +33,32 @@ Polyglot #12 3/6
 ```
 
 There are **35 languages** and **80 snippets**, from Python and Rust to COBOL, Prolog and
-x86 Assembly. There's also a **practice mode** for unlimited rounds and a **colour-blind
-mode**. Your streak and stats are saved in your browser.
+x86 Assembly.
+
+## Features
+
+- **Daily puzzle**, the same for everyone, plus unlimited **practice rounds**
+- **Hard mode** 🔥: no syntax colours, and every guess must fit the clues so far
+- **Challenge a friend** ⚔️: send a link to any snippet with your score attached
+- **Share image**: a result card ready to post, as well as the classic emoji grid
+- **Collection** 🧩: collect all 35 languages by solving them
+- **Learn as you play**: who created each language, a fun fact and a link to read more
+- **Weekly leaderboard**: add your GitHub username and race a field of (clearly labelled) bots
+- **Works offline**: installable as an app on your phone or computer
+- **Colour-blind mode**, dark and light themes, and keyboard and screen-reader support
+
+Everything (stats, streak, collection, username) is stored in your browser. There are no
+accounts, no tracking and no server.
+
+## Pages
+
+| Page | What's there |
+|---|---|
+| `index.html` | Home: today's puzzle, features, profile and leaderboard |
+| `play.html` | The game (daily, practice and challenges) |
+| `collection.html` | The languages you've collected |
+| `languages.html` | All 35 languages with their traits and facts, searchable |
+| `help.html` | How to play, hard mode, challenges, installing the app |
 
 ## Run it locally
 
@@ -71,6 +95,9 @@ There's no server. Everyone's browser works out the same puzzle from the date, u
 seeded shuffle of the snippet list that never puts the same language on two days in a row.
 New snippets are added to the end of the list, so past and current puzzles never change.
 The details are in `src/game.js`.
+
+The leaderboard bots work the same way: their daily results come from a seeded random
+generator (`src/leaderboard.js`), so every visitor sees the same standings.
 
 ## License
 

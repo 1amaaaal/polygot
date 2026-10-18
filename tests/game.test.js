@@ -4,9 +4,11 @@ import { readFileSync } from "node:fs";
 
 import { LANGUAGES } from "../data/languages.js";
 import {
-  SCHEDULE, compare, currentStreak, dailyOrder, dailySnippetIndex, dayNumber,
-  linesToShow, newStats, parseSnippets, recordResult, shareText,
+  GITHUB_NAME, SCHEDULE, compare, currentStreak, dailyOrder, dailySnippetIndex, dayNumber,
+  decodeChallenge, encodeChallenge, hardModeViolation, linesToShow, newStats, parseSnippets,
+  points, recordResult, shareText,
 } from "../src/game.js";
+import { BOTS, botStats, playerWeek, standings, weekStart } from "../src/leaderboard.js";
 import { highlightLine } from "../src/highlight.js";
 
 const snippets = parseSnippets(readFileSync(new URL("../data/snippets.txt", import.meta.url), "utf8"));
@@ -140,4 +142,91 @@ test("the highlighter escapes HTML and only colours shared syntax", () => {
   assert.doesNotMatch(highlightLine("#include <stdio.h>"), /tok-comment/);
   assert.doesNotMatch(highlightLine("(defn in-stock [inv])"), /tok-keyword/);
   assert.match(highlightLine("for x in xs"), /tok-keyword">in</);
+});
+
+test("the home page's example row (Java guessed, answer C) matches the real clues", () => {
+  const r = compare(byName.Java, byName.C);
+  assert.deepEqual([r.paradigm, r.year, r.yearArrow, r.typing, r.execution, r.family],
+    ["miss", "miss", "down", "hit", "miss", "hit"]);
+});
+
+test("every language has a creator, a fact and a Wikipedia link", () => {
+  for (const l of LANGUAGES) {
+    assert.ok(l.creator && l.fact.length > 20, l.name);
+    assert.match(l.wiki, /^https:\/\/en\.wikipedia\.org\/wiki\/\S+$/, l.name);
+    assert.ok(!l.fact.includes("\n"));
+  }
+});
+
+test("hard mode only accepts guesses that fit every clue so far", () => {
+  const answer = byName.Kotlin;
+  const history = [{ guess: byName.Java, result: compare(byName.Java, answer) }];
+  assert.equal(hardModeViolation(byName.Kotlin, history), null);
+  assert.equal(hardModeViolation(byName.Scala, history), null);
+  assert.match(hardModeViolation(byName.Python, history), /Typing must be Static/);
+  assert.match(hardModeViolation(byName.Java, history) ?? "", /Paradigm can't be Object-oriented/);
+  const yearHistory = [{ guess: byName.Ruby, result: compare(byName.Ruby, byName.Lua) }];
+  assert.equal(hardModeViolation(byName.Python, yearHistory), null); // 1991 is within 5 years of 1995
+  assert.equal(hardModeViolation(byName.Bash, yearHistory), "Year must be before 1995 and within 5 years of it");
+  for (const cand of LANGUAGES) {
+    // The real answer can never be rejected.
+    assert.equal(hardModeViolation(answer, [{ guess: cand, result: compare(cand, answer) }]), null, cand.name);
+  }
+});
+
+test("challenge links round-trip and reject garbage", () => {
+  const code = encodeChallenge({ index: 7, name: "octo-cat", guesses: 3, won: true, hard: true });
+  assert.match(code, /^[A-Za-z0-9_-]+$/);
+  assert.deepEqual(decodeChallenge(code, 80), { index: 7, name: "octo-cat", guesses: 3, won: true, hard: true });
+  assert.deepEqual(decodeChallenge(encodeChallenge({ index: 2, guesses: 6, won: false }), 80),
+    { index: 2, name: "", guesses: 0, won: false, hard: false });
+  assert.equal(decodeChallenge(code, 5), null);           // snippet index out of range
+  assert.equal(decodeChallenge("%%%not-base64", 80), null);
+  assert.equal(decodeChallenge(encodeChallenge({ index: 1, guesses: 9, won: true }), 80), null);
+});
+
+test("GitHub usernames are validated", () => {
+  for (const ok of ["octocat", "a", "octo-cat", "x".repeat(39), "A1b2"]) assert.ok(GITHUB_NAME.test(ok), ok);
+  for (const bad of ["", "-x", "x-", "a--b", "x".repeat(40), "has space", "<script>"]) assert.ok(!GITHUB_NAME.test(bad), bad);
+});
+
+test("points reward fewer guesses", () => {
+  assert.equal(points([1, 0, 0, 0, 0, 1]), 7);
+  assert.equal(points([0, 0, 0, 0, 0, 0]), 0);
+});
+
+test("bots are deterministic, labelled and ranked with the player", () => {
+  assert.deepEqual(botStats(BOTS[0], 30), botStats(BOTS[0], 30));
+  const rows = standings({ name: "me", wins: 0, points: 0 }, 30, 24);
+  assert.equal(rows.length, BOTS.length + 1);
+  assert.equal(rows.filter((r) => !r.bot).length, 1);
+  for (let i = 1; i < rows.length; i++) assert.ok(rows[i - 1].points >= rows[i].points);
+  assert.ok(botStats(BOTS[0], 60).points > botStats(BOTS.at(-1), 60).points, "skill matters");
+  assert.ok(botStats(BOTS[0], 5, 0).played <= botStats(BOTS[0], 5, 24).played, "bots play later in the day");
+});
+
+test("every file the service worker caches exists, and every page's scripts exist", async () => {
+  const { existsSync } = await import("node:fs");
+  const root = new URL("../", import.meta.url);
+  const sw = readFileSync(new URL("sw.js", root), "utf8");
+  const assets = [...sw.match(/const ASSETS = \[([\s\S]*?)\];/)[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  for (const asset of assets.filter((a) => a !== "./")) {
+    assert.ok(existsSync(new URL(asset, root)), `sw.js caches missing file ${asset}`);
+  }
+  for (const page of ["index.html", "play.html", "collection.html", "languages.html", "help.html"]) {
+    assert.ok(assets.includes(page), `${page} is not cached for offline use`);
+    const html = readFileSync(new URL(page, root), "utf8");
+    for (const [, src] of html.matchAll(/(?:src|href)="((?:src|data|icons)\/[^"]+|[\w.-]+\.(?:css|webmanifest|png))"/g)) {
+      assert.ok(existsSync(new URL(src, root)), `${page} references missing ${src}`);
+      assert.ok(assets.includes(src) || src.endsWith("og.png"), `${page} uses ${src}, which isn't cached`);
+    }
+  }
+});
+
+test("the leaderboard only counts the last 7 days", () => {
+  assert.equal(weekStart(3), 0);
+  assert.equal(weekStart(200), 194);
+  assert.deepEqual(playerWeek({ 190: 1, 194: 2, 199: 0, 200: 6 }, 200), { wins: 2, points: 6 });
+  const weekly = standings({ name: "me", wins: 0, points: 0 }, 200, 24);
+  assert.ok(weekly.every((r) => r.points <= 7 * 6), "nobody can have more than a week of points");
 });

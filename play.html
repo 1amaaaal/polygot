@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Play · Polyglot</title>
+  <meta name="description" content="Today's Polyglot puzzle: name the programming language in six guesses.">
+  <meta property="og:title" content="Polyglot: the daily guess-the-language game">
+  <meta property="og:description" content="A new code snippet every day. Can you name the language in six guesses?">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://1amaaaal.github.io/polygot/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="src/play.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <main class="wrap">
+      <div class="play-bar">
+        <nav class="modes" aria-label="Game mode">
+          <button class="mode active" id="mode-daily" aria-pressed="true">Daily <span id="daily-label"></span></button>
+          <button class="mode" id="mode-practice" aria-pressed="false">Practice</button>
+          <button class="mode" id="mode-challenge" aria-pressed="false" hidden>Challenge</button>
+        </nav>
+        <div class="play-tools">
+          <span class="badge hard-badge" id="hard-badge" hidden title="Hard mode is on">HARD</span>
+          <button class="btn small" id="stats-btn">Stats</button>
+        </div>
+      </div>
+
+      <p class="challenge-banner" id="challenge-banner" hidden></p>
+
+      <section class="code-card" aria-label="Code snippet">
+        <div class="code-head">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span id="reveal-info">Loading…</span>
+        </div>
+        <pre class="code" id="code" aria-live="polite"></pre>
+      </section>
+
+      <form class="guess-form" id="guess-form" autocomplete="off">
+        <div class="combo">
+          <input id="guess-input" type="text" placeholder="Type a language…" aria-label="Your guess"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions"
+                 spellcheck="false" autocapitalize="off">
+          <ul id="suggestions" role="listbox" hidden></ul>
+        </div>
+        <button type="submit" class="btn primary" id="guess-btn">Guess</button>
+      </form>
+      <p class="guess-count" id="guess-count"></p>
+
+      <section class="board" aria-label="Your guesses">
+        <div class="board-head" aria-hidden="true">
+          <span>Language</span><span>Paradigm</span><span>Year</span><span>Typing</span><span>Runs as</span><span>Looks like</span>
+        </div>
+        <ol id="board"></ol>
+      </section>
+
+      <section class="result" id="result" hidden>
+        <h2 id="result-title"></h2>
+        <p id="result-text"></p>
+        <p class="versus" id="versus" hidden></p>
+        <div class="result-actions">
+          <button class="btn primary" id="share-btn">Copy result</button>
+          <button class="btn" id="share-image-btn">Share image</button>
+          <button class="btn" id="challenge-btn">Challenge a friend</button>
+          <button class="btn" id="practice-btn">Practice round</button>
+        </div>
+        <p class="next" id="next-puzzle"></p>
+      </section>
+
+      <section class="learn card" id="learn" hidden>
+        <h2 id="learn-title"></h2>
+        <p id="learn-creator"></p>
+        <p id="learn-fact"></p>
+        <a id="learn-link" target="_blank" rel="noopener">Read more on Wikipedia →</a>
+      </section>
+    </main>
+    <aside class="sidebar" id="sidebar" aria-label="Profile and leaderboard"></aside>
+  </div>
+
+  <footer class="footer">
+    <a href="https://github.com/1amaaaal/polygot">Source on GitHub</a> · add a snippet, fix a fact, or star it if you like it
+  </footer>
+
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+    <h2 id="help-title">How to play</h2>
+    <p>Name the programming language in <strong>6 guesses</strong>. A new snippet arrives every day at midnight.</p>
+    <p>You start with 3 lines of code. Every wrong guess reveals 2 more, and tells you how close you were:</p>
+    <div class="example">
+      <div class="row-cells">
+        <span class="cell name">Java</span>
+        <span class="cell v-miss">Object-oriented</span>
+        <span class="cell v-close">1995 ↑</span>
+        <span class="cell v-hit">Static</span>
+        <span class="cell v-miss">VM</span>
+        <span class="cell v-hit">C-like</span>
+      </div>
+    </div>
+    <ul class="legend">
+      <li><span class="swatch v-hit"></span> Same as the answer</li>
+      <li><span class="swatch v-close"></span> Year within 5 years of the answer; the arrow points to the answer</li>
+      <li><span class="swatch v-miss"></span> Different from the answer</li>
+    </ul>
+    <p class="muted">More on the <a href="help.html">How to play</a> page, including hard mode and challenges.</p>
+  </dialog>
+
+  <dialog id="stats-dialog" aria-labelledby="stats-title">
+    <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+    <h2 id="stats-title">Statistics</h2>
+    <div class="stat-grid" id="stat-grid"></div>
+    <h3>Guess distribution</h3>
+    <div class="dist" id="dist"></div>
+  </dialog>
+</body>
+</html>
