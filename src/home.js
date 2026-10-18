@@ -34,5 +34,7 @@ const TEASER = [
   "    return 0;",
   "}",
 ];
-$("teaser-code").innerHTML = TEASER.map((line, i) =>
-  `<span class="line${i > 2 ? " hidden" : ""}" data-n="${i + 1}">${i > 2 ? '<span class="bar" style="width:' + Math.max(1, line.trim().length) + 'ch"></span>' : highlightLine(line) || " "}</span>`).join("");
+// The three visible lines type themselves in, one after another.
+$("teaser-code").innerHTML = TEASER.map((line, i) => i > 2
+  ? `<span class="line hidden" data-n="${i + 1}"><span class="bar" style="width:${Math.max(1, line.trim().length)}ch"></span></span>`
+  : `<span class="line new" style="--i:${i}" data-n="${i + 1}">${highlightLine(line) || " "}</span>`).join("");

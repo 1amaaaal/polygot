@@ -5,7 +5,7 @@ import {
   scoreLabel, shareText,
 } from "./game.js";
 import { escapeHtml, highlightLine } from "./highlight.js";
-import { el, initLayout, onSettingsChange, renderSidebar, toast } from "./layout.js";
+import { el, initLayout, onSettingsChange, renderSidebar, reportUrl, toast } from "./layout.js";
 import { canvasToFile, drawResultCard } from "./share-image.js";
 import { collect, save, store } from "./store.js";
 
@@ -36,7 +36,8 @@ const els = {
 // ---------- state ----------
 let snippets = [];
 let today = dayNumber();
-let mode = "daily";       // "daily" | "practice" | "challenge"
+let mode = "daily";       // "daily" | "practice" | "challenge" | "archive"
+let archiveDay = null;    // the day number being replayed in archive mode
 let game = null;          // { index, guesses: [names], hard }
 let challenger = null;    // decoded challenge, shown in the banner and result
 let shownLines = 0;       // for animating newly revealed lines
@@ -73,9 +74,20 @@ function startPractice(index) {
   els.input.focus();
 }
 
+// Replay a past daily puzzle. It doesn't count towards stats or the leaderboard.
+function startArchive(day) {
+  mode = "archive";
+  archiveDay = day;
+  challenger = null;
+  game = { index: dailySnippetIndex(day, snippets), guesses: [], hard: Boolean(store.settings.hard) };
+  begin();
+}
+
 function begin() {
   shownLines = 0;
-  els.modeChallenge.hidden = mode !== "challenge";
+  // The third tab is shared by challenges and archive puzzles.
+  els.modeChallenge.hidden = mode !== "challenge" && mode !== "archive";
+  els.modeChallenge.textContent = mode === "archive" ? `Archive #${archiveDay + 1}` : "Challenge";
   render();
 }
 
@@ -89,7 +101,10 @@ function renderCode() {
     const line = el("span", { class: "line", "data-n": i + 1 });
     if (i < visible) {
       line.innerHTML = (plain ? escapeHtml(text) : highlightLine(text)) || " ";
-      if (i >= shownLines && shownLines > 0) line.classList.add("new");
+      if (i >= shownLines && shownLines > 0) {
+        line.classList.add("new");
+        line.style.setProperty("--i", i - shownLines);
+      }
     } else {
       line.classList.add("hidden");
       line.setAttribute("aria-hidden", "true");
@@ -188,6 +203,7 @@ function renderResult() {
   $("learn-creator").textContent = `Created by ${a.creator} in ${a.year}.`;
   $("learn-fact").textContent = a.fact;
   $("learn-link").href = a.wiki;
+  $("report-link").href = reportUrl(a);
   updateCountdown();
 }
 
@@ -203,8 +219,9 @@ function renderBanner() {
 function render(animateLast = false) {
   els.dailyLabel.textContent = `#${today + 1}`;
   for (const [btn, m] of [[els.modeDaily, "daily"], [els.modePractice, "practice"], [els.modeChallenge, "challenge"]]) {
-    btn.classList.toggle("active", mode === m);
-    btn.setAttribute("aria-pressed", mode === m);
+    const on = mode === m || (m === "challenge" && mode === "archive");
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", on);
   }
   els.hardBadge.hidden = !game.hard;
   renderBanner();
@@ -215,9 +232,11 @@ function render(animateLast = false) {
 
 function updateCountdown() {
   if (mode !== "daily") {
-    els.next.textContent = mode === "practice"
-      ? "Practice rounds don't count towards your daily stats."
-      : "Challenges don't count towards your daily stats.";
+    els.next.textContent = {
+      practice: "Practice rounds don't count towards your daily stats.",
+      challenge: "Challenges don't count towards your daily stats.",
+      archive: "Archive puzzles don't count towards your daily stats.",
+    }[mode];
     return;
   }
   const now = new Date();
@@ -248,14 +267,37 @@ function finish() {
     store.history[today] ??= won ? game.guesses.length : 0;
     save();
     renderSidebar();
+  } else if (mode === "archive") {
+    store.archive[archiveDay] ??= won ? game.guesses.length : 0;
+    save();
   }
   if (won) {
+    confetti();
     const isNew = collect(answer().name);
     const total = Object.keys(store.collection).length;
     if (isNew) setTimeout(() => toast(`New language collected: ${answer().name} (${total}/${LANGUAGES.length})`), 900);
   }
   setTimeout(() => els.result.scrollIntoView({ behavior: "smooth", block: "nearest" }), 450);
   if (mode === "daily") setTimeout(openStats, 1600);
+}
+
+// Brackets rain down when you win. Skipped for people who prefer less motion.
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["#3fb950", "#bb8009", "#79c0ff", "#ff7b72", "#d2a8ff", "#e6edf3"];
+  const glyphs = ["{", "}", "(", ")", "<", ">", "[", "]", ";", "/"];
+  const layer = el("div", { class: "confetti", "aria-hidden": "true" });
+  for (let i = 0; i < 48; i++) {
+    const piece = el("span", { text: glyphs[i % glyphs.length] });
+    const vars = { "--x": `${Math.random() * 100}vw`, "--dx": `${(Math.random() - 0.5) * 30}vw`,
+                   "--r": `${(Math.random() - 0.5) * 720}deg`, "--t": `${1.6 + Math.random() * 1.4}s`,
+                   "--d": `${Math.random() * 0.4}s`, "--size": `${18 + Math.random() * 18}px`,
+                   "--c": colors[i % colors.length] };
+    for (const [k, v] of Object.entries(vars)) piece.style.setProperty(k, v);
+    layer.append(piece);
+  }
+  document.body.append(layer);
+  setTimeout(() => layer.remove(), 3500);
 }
 
 function submitGuess(text) {
@@ -356,7 +398,8 @@ els.form.addEventListener("submit", (e) => {
 
 // ---------- sharing ----------
 const siteUrl = () => new URL(".", location.href).href;
-const label = () => (mode === "daily" ? `#${today + 1}` : mode === "practice" ? "(practice)" : "(challenge)");
+const label = () => ({ daily: `#${today + 1}`, practice: "(practice)", challenge: "(challenge)",
+                       archive: `#${archiveDay + 1} (archive)` }[mode]);
 
 async function copyText(text, done = "Copied to clipboard") {
   try {
@@ -384,11 +427,12 @@ async function shareResult() {
 
 async function shareImage() {
   const canvas = drawResultCard({
-    title: mode === "daily" ? `Daily puzzle #${today + 1}` : mode === "practice" ? "Practice round" : "Challenge",
+    title: { daily: `Daily puzzle #${today + 1}`, practice: "Practice round", challenge: "Challenge",
+             archive: `Puzzle #${archiveDay + 1} (archive)` }[mode],
     score: scoreLabel(results(), isWon(), game.hard), results: results(), name: store.github,
     colorblind: Boolean(store.settings.colorblind), url: siteUrl(),
   });
-  const file = await canvasToFile(canvas, `polyglot-${mode === "daily" ? today + 1 : mode}.png`);
+  const file = await canvasToFile(canvas, `polyglot-${{ daily: today + 1, archive: `archive-${archiveDay + 1}` }[mode] ?? mode}.png`);
   if (navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], text: "Can you beat my Polyglot score?" }); return; }
     catch (err) { if (err?.name === "AbortError") return; }
@@ -464,8 +508,14 @@ try {
   challenger = code ? decodeChallenge(code, snippets.length) : null;
   if (code && !challenger) toast("That challenge link looks broken");
 
+  const params = new URLSearchParams(location.search);
+  const puzzle = params.has("day") ? Number(params.get("day")) : null;
+  const pastPuzzle = Number.isInteger(puzzle) && puzzle >= 1 && puzzle <= today;
+  if (puzzle !== null && !pastPuzzle && puzzle !== today + 1) toast("That puzzle isn't available yet");
+
   if (challenger && challenger.index !== dailyIndex()) startPractice(challenger.index);
-  else if (!challenger && new URLSearchParams(location.search).get("mode") === "practice") startPractice();
+  else if (!challenger && pastPuzzle) startArchive(puzzle - 1);
+  else if (!challenger && params.get("mode") === "practice") startPractice();
   else startDaily();   // a challenge on today's snippet is played as the daily puzzle
 
   if (!store.seenHelp) {

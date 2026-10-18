@@ -50,7 +50,7 @@ const rows = (page) => page.locator("#board .row-cells:not([aria-hidden])").coun
 const page = await newPage();
 await page.goto(BASE);
 await page.waitForSelector(".board-list li");
-assert.equal(await page.locator(".nav a").count(), 5);
+assert.equal(await page.locator(".nav a").count(), 6);
 assert.match(await page.textContent("#play-cta"), /Play today's puzzle #\d+/);
 assert.equal(await page.locator(".board-list li").count(), 9);
 assert.equal(await page.locator(".board-list .tag").count(), 8, "every bot is labelled");
@@ -98,10 +98,12 @@ await guess(page, f.answer);
 await page.waitForSelector("#result:not([hidden])");
 await page.waitForSelector("#learn:not([hidden])");
 assert.equal(await page.textContent("#learn-title"), `About ${f.answer}`);
+assert.match(await page.getAttribute("#report-link", "href"), /^https:\/\/github\.com\/1amaaaal\/polygot\/issues\/new\?title=Fact\+check/);
+assert.equal(await page.locator(".confetti span").count(), 48, "confetti on a win");
 await page.waitForFunction(() => document.querySelector("#stats-dialog").open);
 await page.keyboard.press("Escape");
 assert.match(await page.textContent(".board-list li.me .pts"), /^[1-6]$/);
-step(`winning (${f.answer}) shows facts, stats, and updates the leaderboard`);
+step(`winning (${f.answer}) shows confetti, facts, a report link and stats, and updates the leaderboard`);
 await shot(page, "play-won");
 
 await page.click("#share-btn");
@@ -192,9 +194,48 @@ await hard.click("#share-btn");
 assert.match(await hard.evaluate(() => navigator.clipboard.readText()), /2\/6\*/);
 step(`hard mode removes colours, rejects ${banned} and marks the score with *`);
 
+// ---------- archive (a visitor five days after launch) ----------
+const later = await newPage();
+await later.addInitScript(() => {
+  const realNow = Date.now();
+  const target = new Date(2026, 9, 23, 12).getTime();    // puzzle #6
+  const RealDate = Date;
+  globalThis.Date = class extends RealDate {
+    constructor(...a) { super(...(a.length ? a : [RealDate.now() - realNow + target])); }
+    static now() { return RealDate.now() - realNow + target; }
+  };
+});
+await later.goto(new URL("archive.html", BASE).href);
+await later.waitForSelector(".archive-row");
+assert.equal(await later.locator(".archive-row").count(), 5);
+assert.match(await later.textContent(".archive-row"), /#5.*Not played/);
+await later.click('.archive-row:has-text("#3") a');
+await later.waitForSelector("#code .line");
+await later.keyboard.press("Escape");
+assert.equal(await later.textContent("#mode-challenge"), "Archive #3");
+const archiveAnswer = await later.evaluate(async () => {
+  const g = await import(new URL("src/game.js", location.href));
+  const s = g.parseSnippets(await (await fetch("data/snippets.txt")).text());
+  return s[g.dailySnippetIndex(2, s)].language;
+});
+await guess(later, archiveAnswer);
+await later.waitForSelector("#result:not([hidden])");
+assert.match(await later.textContent("#next-puzzle"), /Archive puzzles don't count/);
+await later.goto(new URL("archive.html", BASE).href);
+await later.waitForSelector(".archive-row.won");
+assert.match(await later.textContent(".archive-row.won"), new RegExp(`#3.*Solved 1/6 · ${archiveAnswer.replace(/[+#.]/g, "\\$&")}.*Replay`));
+const saved = await later.evaluate(() => JSON.parse(localStorage.getItem("polyglot-v1")));
+assert.equal(saved.stats.played, 0, "archive games don't count as daily plays");
+assert.deepEqual(saved.archive, { 2: 1 });
+await later.goto(new URL("play.html?day=99", BASE).href);
+await toastText(later, "That puzzle isn't available yet");
+step(`the archive lists past puzzles, replays #3 (${archiveAnswer}) and leaves daily stats alone`);
+await later.goto(new URL("archive.html", BASE).href);
+await shot(later, "archive");
+
 // ---------- mobile ----------
 const mobile = await newPage({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
-for (const p of ["index.html", "play.html", "collection.html", "languages.html", "help.html"]) {
+for (const p of ["index.html", "play.html", "archive.html", "collection.html", "languages.html", "help.html"]) {
   await mobile.goto(new URL(p, BASE).href);
   await mobile.waitForLoadState("networkidle");
   const overflow = await mobile.evaluate(() => document.documentElement.scrollWidth - innerWidth);

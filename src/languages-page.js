@@ -1,5 +1,5 @@
 import { LANGUAGES } from "../data/languages.js";
-import { el, initLayout } from "./layout.js";
+import { el, initLayout, reportUrl } from "./layout.js";
 import { store } from "./store.js";
 
 initLayout("languages");
@@ -17,7 +17,9 @@ function card(l) {
     el("p", { text: l.fact }),
     el("footer", {},
       el("a", { href: l.wiki, target: "_blank", rel: "noopener", text: "Wikipedia →" }),
-      got ? el("span", { class: "collected", text: "✓ Collected" }) : null));
+      got ? el("span", { class: "collected", text: "✓ Collected" }) : null,
+      el("a", { class: "report", href: reportUrl(l), target: "_blank", rel: "noopener", text: "Report a mistake",
+                title: `Report a mistake about ${l.name}` })));
 }
 
 function render() {

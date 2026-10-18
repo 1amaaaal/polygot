@@ -8,6 +8,7 @@ import { save, store } from "./store.js";
 const PAGES = [
   { href: "index.html", label: "Home", id: "home" },
   { href: "play.html", label: "Play", id: "play" },
+  { href: "archive.html", label: "Archive", id: "archive" },
   { href: "collection.html", label: "Collection", id: "collection" },
   { href: "languages.html", label: "Languages", id: "languages" },
   { href: "help.html", label: "How to play", id: "help" },
@@ -28,6 +29,18 @@ export const el = (tag, props = {}, ...children) => {
   node.append(...children.filter((c) => c !== null && c !== undefined && c !== false));
   return node;
 };
+
+// A pre-filled GitHub issue for correcting a language's facts.
+export function reportUrl(lang) {
+  const body = `Which detail about ${lang.name} is wrong?\n\n` +
+    `- Year: ${lang.year}\n- Paradigm: ${lang.paradigm}\n- Typing: ${lang.typing}\n` +
+    `- Runs as: ${lang.execution}\n- Looks like: ${lang.family}\n- Creator: ${lang.creator}\n- Fact: ${lang.fact}\n\n` +
+    "What should it say? Please include a source:\n";
+  const url = new URL("https://github.com/1amaaaal/polygot/issues/new");
+  url.searchParams.set("title", `Fact check: ${lang.name}`);
+  url.searchParams.set("body", body);
+  return url.href;
+}
 
 // ---------- toast ----------
 let toastEl;
@@ -145,7 +158,9 @@ function leaderboardCard() {
   const me = { name: store.github || "you", ...playerWeek(store.history, today) };
   const rows = standings(me, today, new Date().getHours());
   const list = el("ol", { class: "board-list" }, ...rows.map((r) => el("li", { class: r.bot ? "" : "me" },
-    el("span", { class: "rank", text: r.rank }),
+    r.rank <= 3 && r.points > 0
+      ? el("span", { class: "rank medal", text: ["🥇", "🥈", "🥉"][r.rank - 1], "aria-label": `Rank ${r.rank}` })
+      : el("span", { class: "rank", text: r.rank }),
     r.bot ? el("span", { class: "avatar placeholder bot", text: "🤖" }) : (store.github ? avatar(store.github, 24) : el("span", { class: "avatar placeholder", text: "★" })),
     el("span", { class: "who" }, r.bot ? r.name : (store.github ? `@${store.github}` : "You"),
        r.bot ? el("small", { class: "tag", text: "BOT" }) : null),

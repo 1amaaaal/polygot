@@ -213,7 +213,7 @@ test("every file the service worker caches exists, and every page's scripts exis
   for (const asset of assets.filter((a) => a !== "./")) {
     assert.ok(existsSync(new URL(asset, root)), `sw.js caches missing file ${asset}`);
   }
-  for (const page of ["index.html", "play.html", "collection.html", "languages.html", "help.html"]) {
+  for (const page of ["index.html", "play.html", "archive.html", "collection.html", "languages.html", "help.html"]) {
     assert.ok(assets.includes(page), `${page} is not cached for offline use`);
     const html = readFileSync(new URL(page, root), "utf8");
     for (const [, src] of html.matchAll(/(?:src|href)="((?:src|data|icons)\/[^"]+|[\w.-]+\.(?:css|webmanifest|png))"/g)) {

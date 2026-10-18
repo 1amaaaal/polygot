@@ -38,11 +38,13 @@ x86 Assembly.
 ## Features
 
 - **Daily puzzle**, the same for everyone, plus unlimited **practice rounds**
+- **Archive** 📅: replay any past puzzle you missed
 - **Hard mode** 🔥: no syntax colours, and every guess must fit the clues so far
 - **Challenge a friend** ⚔️: send a link to any snippet with your score attached
 - **Share image**: a result card ready to post, as well as the classic emoji grid
 - **Collection** 🧩: collect all 35 languages by solving them
 - **Learn as you play**: who created each language, a fun fact and a link to read more
+  (spot a mistake? every fact has a "report it" link)
 - **Weekly leaderboard**: add your GitHub username and race a field of (clearly labelled) bots
 - **Works offline**: installable as an app on your phone or computer
 - **Colour-blind mode**, dark and light themes, and keyboard and screen-reader support
@@ -55,7 +57,8 @@ accounts, no tracking and no server.
 | Page | What's there |
 |---|---|
 | `index.html` | Home: today's puzzle, features, profile and leaderboard |
-| `play.html` | The game (daily, practice and challenges) |
+| `play.html` | The game (daily, practice, challenges and archive puzzles) |
+| `archive.html` | Every past puzzle, with your result for each |
 | `collection.html` | The languages you've collected |
 | `languages.html` | All 35 languages with their traits and facts, searchable |
 | `help.html` | How to play, hard mode, challenges, installing the app |

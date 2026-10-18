@@ -20,6 +20,7 @@ export const store = {
   daily: null,        // { day, guesses, hard }
   collection: {},     // { [language]: { wins, firstSolved } }
   history: {},        // daily results: { [day]: guesses, 0 = failed }
+  archive: {},        // replayed past puzzles, same shape as history
   github: "",         // the player's GitHub username
   seenHelp: false,
   ...load(),

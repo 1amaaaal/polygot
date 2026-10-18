@@ -3,13 +3,13 @@
 // background ("stale while revalidate"). Bump CACHE when files are renamed
 // or removed so old caches get cleaned up.
 
-const CACHE = "polyglot-v2";
+const CACHE = "polyglot-v3";
 const ASSETS = [
-  "./", "index.html", "play.html", "collection.html", "languages.html", "help.html",
+  "./", "index.html", "play.html", "archive.html", "collection.html", "languages.html", "help.html",
   "style.css", "manifest.webmanifest",
   "data/languages.js", "data/snippets.txt",
   "src/game.js", "src/highlight.js", "src/layout.js", "src/leaderboard.js", "src/share-image.js",
-  "src/store.js", "src/play.js", "src/home.js", "src/collection.js", "src/languages-page.js", "src/help.js",
+  "src/store.js", "src/play.js", "src/home.js", "src/collection.js", "src/languages-page.js", "src/help.js", "src/archive.js",
   "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
 ];
 
