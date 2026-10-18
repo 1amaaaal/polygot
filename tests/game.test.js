@@ -206,17 +206,20 @@ test("bots are deterministic, labelled and ranked with the player", () => {
 });
 
 test("every file the service worker caches exists, and every page's scripts exist", async () => {
-  const { existsSync } = await import("node:fs");
+  const { existsSync, readdirSync } = await import("node:fs");
   const root = new URL("../", import.meta.url);
   const sw = readFileSync(new URL("sw.js", root), "utf8");
   const assets = [...sw.match(/const ASSETS = \[([\s\S]*?)\];/)[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
   for (const asset of assets.filter((a) => a !== "./")) {
     assert.ok(existsSync(new URL(asset, root)), `sw.js caches missing file ${asset}`);
   }
-  for (const page of ["index.html", "play.html", "archive.html", "collection.html", "languages.html", "help.html"]) {
+  for (const script of readdirSync(new URL("src/", root))) {
+    assert.ok(assets.includes(`src/${script}`), `src/${script} is not cached for offline use`);
+  }
+  for (const page of readdirSync(root).filter((f) => f.endsWith(".html"))) {
     assert.ok(assets.includes(page), `${page} is not cached for offline use`);
     const html = readFileSync(new URL(page, root), "utf8");
-    for (const [, src] of html.matchAll(/(?:src|href)="((?:src|data|icons)\/[^"]+|[\w.-]+\.(?:css|webmanifest|png))"/g)) {
+    for (const [, src] of html.matchAll(/(?:src|href)="((?:src|data|icons|fonts)\/[^"]+|[\w.-]+\.(?:css|webmanifest|png))"/g)) {
       assert.ok(existsSync(new URL(src, root)), `${page} references missing ${src}`);
       assert.ok(assets.includes(src) || src.endsWith("og.png"), `${page} uses ${src}, which isn't cached`);
     }
@@ -229,4 +232,57 @@ test("the leaderboard only counts the last 7 days", () => {
   assert.deepEqual(playerWeek({ 190: 1, 194: 2, 199: 0, 200: 6 }, 200), { wins: 2, points: 6 });
   const weekly = standings({ name: "me", wins: 0, points: 0 }, 200, 24);
   assert.ok(weekly.every((r) => r.points <= 7 * 6), "nobody can have more than a week of points");
+});
+
+test("arcade boards rank weekly bests and place the player correctly", async () => {
+  const { arcadeStandings, weeklyBest, botArcadeScore } = await import("../src/leaderboard.js");
+  assert.equal(weeklyBest([{ day: 1, score: 30 }, { day: 9, score: 4 }, { day: 10, score: 7 }], 10), 7);
+  assert.equal(weeklyBest([], 10), null);
+  assert.equal(botArcadeScore(BOTS[0], 3, "speed"), botArcadeScore(BOTS[0], 3, "speed"));
+  const rows = arcadeStandings("speed", { name: "me", score: 99 }, 10);
+  assert.equal(rows[0].name, "me");
+  assert.equal(rows.length, BOTS.length + 1);
+  const last = arcadeStandings("endless", { name: "me", score: null }, 10);
+  assert.equal(last.at(-1).name, "me", "no score this week sorts last");
+});
+
+test("badges unlock from saved progress and are claimed once", async () => {
+  const { ACHIEVEMENTS, claimNew, evaluate } = await import("../src/achievements.js");
+  assert.equal(new Set(ACHIEVEMENTS.map((a) => a.id)).size, ACHIEVEMENTS.length);
+  const store = {
+    stats: { maxStreak: 4 }, collection: { COBOL: { wins: 1 }, Fortran: { wins: 2 }, Clojure: { wins: 1 } },
+    counters: { genius: 1 }, speed: { runs: [{ day: 0, score: 12 }] }, endless: { runs: [] }, archive: {},
+  };
+  const byId = Object.fromEntries(evaluate(store).map((b) => [b.id, b]));
+  assert.equal(byId["hello-world"].unlocked, true);
+  assert.equal(byId["streak-3"].unlocked, true);
+  assert.equal(byId["streak-7"].unlocked, false);
+  assert.equal(byId["streak-7"].current, 4);
+  assert.equal(byId.legacy.unlocked, true);
+  assert.equal(byId.parens.current, 1);
+  assert.equal(byId["speed-10"].unlocked, true);
+  const first = claimNew(store, "2026-10-18");
+  assert.ok(first.some((b) => b.id === "first-try"));
+  assert.equal(store.badges["first-try"], "2026-10-18");
+  assert.deepEqual(claimNew(store, "2026-10-19"), [], "already-claimed badges aren't announced again");
+});
+
+test("Wrapped summarizes play and skips empty slides", async () => {
+  const { summarize, slides } = await import("../src/wrapped.js");
+  const empty = summarize({});
+  assert.equal(empty.hasPlayed, false);
+  assert.equal(slides(empty, 2026).length, 2, "intro and outro only");
+  const s = summarize({
+    stats: { played: 4, wins: 3, maxStreak: 3, distribution: [1, 0, 2, 0, 0, 0] },
+    collection: { Clojure: { wins: 3 }, Scheme: { wins: 1 }, C: { wins: 1 } },
+    speed: { runs: [{ day: 1, score: 14 }] },
+  });
+  assert.equal(s.daily.winRate, 75);
+  assert.equal(s.daily.average, 2.3);
+  assert.equal(s.topLanguage.name, "Clojure");
+  assert.equal(s.family, "Lisp");
+  assert.equal(s.oldest.name, "C");
+  const story = slides(s, 2026);
+  assert.ok(story.some((x) => x.big === "Parenthesis Whisperer"));
+  assert.ok(story.at(-1).final);
 });

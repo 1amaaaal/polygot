@@ -10,15 +10,16 @@ const sorted = [...LANGUAGES].sort((a, b) => a.year - b.year || a.name.localeCom
 
 function card(l) {
   const got = store.collection[l.name];
-  return el("article", { class: "card lang" + (got ? " got" : "") },
-    el("header", {}, el("h2", { text: l.name }), el("span", { class: "year", text: l.year })),
-    el("div", { class: "chips" }, ...[l.paradigm, l.typing, l.execution, l.family].map((t) => el("span", { class: "chip", text: t }))),
-    el("p", { class: "small", text: `Created by ${l.creator}.` }),
-    el("p", { text: l.fact }),
-    el("footer", {},
-      el("a", { href: l.wiki, target: "_blank", rel: "noopener", text: "Wikipedia →" }),
-      got ? el("span", { class: "collected", text: "✓ Collected" }) : null,
-      el("a", { class: "report", href: reportUrl(l), target: "_blank", rel: "noopener", text: "Report a mistake",
+  return el("article", { class: "lang" + (got ? " got" : "") },
+    el("header", {},
+      el("h2", { text: l.name }),
+      el("span", { class: "year mono", text: l.year }),
+      got ? el("span", { class: "tag", text: "collected" }) : null),
+    el("p", { class: "traits mono", text: [l.paradigm, l.typing, l.execution, l.family].join(" · ") }),
+    el("p", { text: `${l.fact} Created by ${l.creator}.` }),
+    el("p", { class: "links" },
+      el("a", { href: l.wiki, target: "_blank", rel: "noopener", text: "Wikipedia" }),
+      el("a", { href: reportUrl(l), target: "_blank", rel: "noopener", text: "Report a mistake",
                 title: `Report a mistake about ${l.name}` })));
 }
 

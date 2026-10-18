@@ -3,32 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta property="og:title" content="Polyglot: the daily guess-the-language game">
-  <meta property="og:description" content="A new code snippet every day. Can you name the language in six guesses?">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="https://1amaaaal.github.io/polygot/og.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#0d1117">
+  <title>Languages · Polyglot</title>
+  <meta name="description" content="All 35 programming languages in Polyglot, with their history, traits and a fact about each.">
+  <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <title>Languages · Polyglot</title>
-  <meta name="description" content="All 35 programming languages in Polyglot, with their history, traits and fun facts.">
   <script type="module" src="src/languages-page.js"></script>
 </head>
 <body>
-  <div class="layout">
-    <main class="wrap">
-      <h1 class="page-title">The languages</h1>
-      <p class="lead">All 35 languages that can be the answer, oldest first. Knowing their traits is the secret to fewer guesses.</p>
-      <input class="search" id="lang-search" type="search" placeholder="Search languages, creators, traits…" aria-label="Search languages">
-      <div class="lang-grid" id="lang-grid"></div>
-    </main>
-    <aside class="sidebar" id="sidebar" aria-label="Profile and leaderboard"></aside>
-  </div>
-  <footer class="footer">
-    <a href="https://github.com/1amaaaal/polygot">Source on GitHub</a> · add a snippet, fix a fact, or star it if you like it
-  </footer>
+  <main class="page">
+    <header class="page-head">
+      <h1>Languages</h1>
+      <p class="lead">The 35 languages that can be the answer, oldest first. Knowing their traits is the quickest way to fewer guesses.</p>
+    </header>
+    <input class="search" id="lang-search" type="search" placeholder="Search by name, creator or trait" aria-label="Search languages">
+    <div class="lang-list" id="lang-grid"></div>
+  </main>
 </body>
 </html>

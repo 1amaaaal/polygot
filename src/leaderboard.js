@@ -80,3 +80,41 @@ export function standings(player, today, hourNow) {
   rows.sort((a, b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name));
   return rows.map((row, i) => ({ ...row, rank: i + 1 }));
 }
+
+// ---------- arcade (speed run and endless) ----------
+// Each day a bot plays, it posts one speed run and one endless run. The board
+// shows everyone's best run of the last WEEK days.
+
+export function botArcadeScore(bot, day, kind) {
+  const random = mulberry32(hash(`${bot.name}:${kind}`) + day * 104729);
+  if (random() > bot.activity) return null;
+  return kind === "speed"
+    ? Math.round(5 + bot.skill * 14 + random() * 5)
+    : Math.round(bot.skill * 9 + random() * 6);
+}
+
+function botWeeklyBest(bot, kind, today, hourNow) {
+  const playHour = hash(bot.name) % 20 + 2;
+  const lastDay = hourNow >= playHour ? today : today - 1;
+  let best = null;
+  for (let day = weekStart(today); day <= lastDay; day++) {
+    const score = botArcadeScore(bot, day, kind);
+    if (score !== null) best = Math.max(best ?? 0, score);
+  }
+  return best;
+}
+
+// The player's best run this week, or null if they haven't played one.
+export function weeklyBest(runs = [], today) {
+  const recent = runs.filter((r) => r.day >= weekStart(today));
+  return recent.length ? Math.max(...recent.map((r) => r.score)) : null;
+}
+
+// Ranked rows for an arcade board. Players who haven't played this week are
+// listed last with no score.
+export function arcadeStandings(kind, player, today, hourNow = 24) {
+  const rows = BOTS.map((bot) => ({ name: bot.name, bot: true, score: botWeeklyBest(bot, kind, today, hourNow) }));
+  if (player) rows.push({ ...player, bot: false });
+  rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1) || a.name.localeCompare(b.name));
+  return rows.map((row, i) => ({ ...row, rank: i + 1 }));
+}

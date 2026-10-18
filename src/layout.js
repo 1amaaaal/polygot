@@ -1,21 +1,22 @@
-// Shared page chrome: header and navigation, settings, the profile and
-// leaderboard sidebar, toasts, and the offline service worker.
+// Shared page chrome: header and navigation, footer, settings, toasts, badge
+// announcements and the offline service worker.
 
-import { GITHUB_NAME, currentStreak, dayNumber, points } from "./game.js";
-import { WEEK, playerWeek, standings } from "./leaderboard.js";
+import { claimNew } from "./achievements.js";
+import { dayNumber } from "./game.js";
 import { save, store } from "./store.js";
 
-const PAGES = [
-  { href: "index.html", label: "Home", id: "home" },
-  { href: "play.html", label: "Play", id: "play" },
-  { href: "archive.html", label: "Archive", id: "archive" },
-  { href: "collection.html", label: "Collection", id: "collection" },
-  { href: "languages.html", label: "Languages", id: "languages" },
-  { href: "help.html", label: "How to play", id: "help" },
+// The four main sections. Other pages belong to one of them for the
+// purposes of highlighting the navigation.
+const NAV = [
+  { href: "play.html", label: "Today", id: "play" },
+  { href: "arcade.html", label: "Arcade", id: "arcade" },
+  { href: "leaderboard.html", label: "Leaderboard", id: "leaderboard" },
+  { href: "profile.html", label: "Profile", id: "profile" },
 ];
 
-const ICONS = {
-  settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>',
+const ICON = {
+  help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.4v.6"/><path d="M12 16.8v.2"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>',
 };
 
 export const el = (tag, props = {}, ...children) => {
@@ -23,12 +24,21 @@ export const el = (tag, props = {}, ...children) => {
   for (const [k, v] of Object.entries(props)) {
     if (k === "class") node.className = v;
     else if (k === "text") node.textContent = v;
+    else if (k === "html") node.innerHTML = v;
     else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
     else node.setAttribute(k, v);
   }
   node.append(...children.filter((c) => c !== null && c !== undefined && c !== false));
   return node;
 };
+
+// A GitHub avatar, falling back to the first letter if it can't load.
+export function avatar(name, size) {
+  const img = el("img", { class: "avatar", alt: "", width: size, height: size, loading: "lazy",
+    src: `https://github.com/${encodeURIComponent(name)}.png?size=${size * 2}` });
+  img.addEventListener("error", () => img.replaceWith(el("span", { class: "avatar placeholder", text: name[0].toUpperCase() })));
+  return img;
+}
 
 // A pre-filled GitHub issue for correcting a language's facts.
 export function reportUrl(lang) {
@@ -49,20 +59,38 @@ export function toast(message) {
   toastEl.textContent = message;
   toastEl.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2400);
 }
 
-// ---------- header ----------
-function renderHeader(page) {
+// Save any badges earned since last time and tell the player about them.
+export function celebrateBadges(delay = 1200) {
+  const fresh = claimNew(store);
+  if (!fresh.length) return;
+  save();
+  setTimeout(() => toast(fresh.length === 1 ? `Badge unlocked: ${fresh[0].name}` : `${fresh.length} badges unlocked`), delay);
+}
+
+// ---------- header and footer ----------
+function renderHeader(section) {
   const header = el("header", { class: "topbar" },
-    el("a", { class: "logo", href: "index.html", "aria-label": "Polyglot home" }, "Poly", el("span", { text: "glot" })),
-    el("nav", { class: "nav", "aria-label": "Main" }, ...PAGES.map((p) =>
-      el("a", { href: p.href, text: p.label, ...(p.id === page ? { "aria-current": "page" } : {}) }))),
-    el("button", { class: "icon-btn", id: "settings-btn", "aria-label": "Settings", title: "Settings",
-                   onclick: () => document.getElementById("settings-dialog").showModal() }),
+    el("a", { class: "logo", href: "index.html", "aria-label": "Polyglot home" }, "polyglot", el("span", { class: "caret", "aria-hidden": "true" })),
+    el("nav", { class: "nav", "aria-label": "Main" }, ...NAV.map((p) =>
+      el("a", { href: p.href, text: p.label, ...(p.id === section ? { "aria-current": "page" } : {}) }))),
+    el("div", { class: "topbar-tools" },
+      el("a", { class: "icon-btn", href: "help.html", "aria-label": "How to play", title: "How to play", html: ICON.help }),
+      el("button", { class: "icon-btn", id: "settings-btn", "aria-label": "Settings", title: "Settings", html: ICON.settings,
+                     onclick: () => document.getElementById("settings-dialog").showModal() })),
   );
-  header.querySelector("#settings-btn").innerHTML = ICONS.settings;
   document.body.prepend(header);
+}
+
+function renderFooter() {
+  document.body.append(el("footer", { class: "footer" },
+    el("span", { class: "mono", text: `polyglot · puzzle #${dayNumber() + 1}` }),
+    el("nav", { "aria-label": "More" },
+      el("a", { href: "languages.html", text: "Languages" }),
+      el("a", { href: "help.html", text: "How to play" }),
+      el("a", { href: "https://github.com/1amaaaal/polygot", text: "Source" }))));
 }
 
 // ---------- settings ----------
@@ -80,7 +108,7 @@ function hardModeLocked() {
 
 function renderSettings() {
   const toggle = (id, title, detail, key) => el("label", { class: "setting" },
-    el("span", {}, el("strong", { text: title }), el("br"), el("small", { text: detail })),
+    el("span", {}, el("strong", { text: title }), el("small", { text: detail })),
     el("input", { type: "checkbox", id, ...(store.settings[key] ? { checked: "" } : {}),
       onchange: (e) => {
         if (key === "hard" && hardModeLocked()) {
@@ -93,101 +121,25 @@ function renderSettings() {
         applySettings();
         settingsListeners.forEach((fn) => fn(store.settings));
       } }));
-  const dialog = el("dialog", { id: "settings-dialog", "aria-labelledby": "settings-title" },
+  document.body.append(el("dialog", { id: "settings-dialog", "aria-labelledby": "settings-title" },
     el("form", { method: "dialog" }, el("button", { class: "close", "aria-label": "Close", text: "×" })),
     el("h2", { id: "settings-title", text: "Settings" }),
-    toggle("hard-toggle", "Hard mode", "No syntax colours, and every guess must fit all the clues so far. Results get a *.", "hard"),
-    el("hr"),
-    toggle("colorblind-toggle", "Colour-blind mode", "Orange and blue instead of green and yellow", "colorblind"),
-  );
-  document.body.append(dialog);
-}
-
-// ---------- sidebar: profile + leaderboard ----------
-function avatar(name, size) {
-  const img = el("img", { class: "avatar", alt: "", width: size, height: size, loading: "lazy",
-    src: `https://github.com/${encodeURIComponent(name)}.png?size=${size * 2}` });
-  img.addEventListener("error", () => img.replaceWith(el("span", { class: "avatar placeholder", text: name[0].toUpperCase() })));
-  return img;
-}
-
-function profileCard() {
-  const s = store.stats;
-  const today = dayNumber();
-  if (!store.github) {
-    const input = el("input", { type: "text", placeholder: "your-github-username", "aria-label": "GitHub username",
-                                autocomplete: "off", spellcheck: "false", autocapitalize: "off", maxlength: "39" });
-    const form = el("form", { class: "profile-form", onsubmit: (e) => {
-      e.preventDefault();
-      const name = input.value.trim().replace(/^@/, "");
-      if (!GITHUB_NAME.test(name)) {
-        toast("That doesn't look like a GitHub username");
-        return;
-      }
-      store.github = name;
-      save();
-      renderSidebar();
-      toast(`Welcome, @${name}!`);
-    } }, input, el("button", { class: "btn primary small", text: "Save" }));
-    return el("section", { class: "card profile" },
-      el("h2", { text: "Your profile" }),
-      el("p", { class: "muted", text: "Add your GitHub username to put your name and avatar on the leaderboard, share images and challenge links." }),
-      form,
-      el("p", { class: "tiny", text: "Saved only in this browser. Polyglot never asks for a password." }));
-  }
-  return el("section", { class: "card profile" },
-    el("div", { class: "profile-head" },
-      avatar(store.github, 48),
-      el("div", {},
-        el("a", { class: "handle", href: `https://github.com/${encodeURIComponent(store.github)}`, target: "_blank",
-                  rel: "noopener", text: `@${store.github}` }),
-        el("button", { class: "link-btn", text: "change", onclick: () => {
-          store.github = "";
-          save();
-          renderSidebar();
-        } }))),
-    el("div", { class: "mini-stats" },
-      ...[[s.played, "Played"], [s.played ? Math.round((100 * s.wins) / s.played) + "%" : "–", "Wins"],
-          [currentStreak(s, today), "Streak"], [points(s.distribution), "Points"]]
-        .map(([v, l]) => el("div", {}, el("b", { text: String(v) }), el("span", { text: l })))));
-}
-
-function leaderboardCard() {
-  const s = store.stats;
-  const today = dayNumber();
-  const me = { name: store.github || "you", ...playerWeek(store.history, today) };
-  const rows = standings(me, today, new Date().getHours());
-  const list = el("ol", { class: "board-list" }, ...rows.map((r) => el("li", { class: r.bot ? "" : "me" },
-    r.rank <= 3 && r.points > 0
-      ? el("span", { class: "rank medal", text: ["🥇", "🥈", "🥉"][r.rank - 1], "aria-label": `Rank ${r.rank}` })
-      : el("span", { class: "rank", text: r.rank }),
-    r.bot ? el("span", { class: "avatar placeholder bot", text: "🤖" }) : (store.github ? avatar(store.github, 24) : el("span", { class: "avatar placeholder", text: "★" })),
-    el("span", { class: "who" }, r.bot ? r.name : (store.github ? `@${store.github}` : "You"),
-       r.bot ? el("small", { class: "tag", text: "BOT" }) : null),
-    el("span", { class: "pts", text: `${r.points}` }))));
-  return el("section", { class: "card leaderboard" },
-    el("h2", { text: "Leaderboard" }),
-    el("p", { class: "muted small", text: `You vs the bots · points from the last ${WEEK} days` }),
-    list,
-    el("p", { class: "tiny", text: "Daily wins score 6 points for 1 guess, down to 1 point for 6. Bots are simulated rivals: a real global leaderboard needs a server." }));
-}
-
-export function renderSidebar() {
-  const aside = document.getElementById("sidebar");
-  if (aside) aside.replaceChildren(profileCard(), leaderboardCard());
+    toggle("hard-toggle", "Hard mode", "No syntax colours, and every guess must fit the clues so far.", "hard"),
+    toggle("colorblind-toggle", "Colour-blind mode", "Orange and blue instead of green and yellow.", "colorblind"),
+  ));
 }
 
 // ---------- setup ----------
-export function initLayout(page) {
-  renderHeader(page);
+export function initLayout(section) {
+  renderHeader(section);
   renderSettings();
+  renderFooter();
   toastEl = el("div", { class: "toast", role: "status", "aria-live": "polite" });
   document.body.append(toastEl);
   for (const dialog of document.querySelectorAll("dialog")) {
     dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
   }
   applySettings();
-  renderSidebar();
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }

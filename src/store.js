@@ -21,6 +21,10 @@ export const store = {
   collection: {},     // { [language]: { wins, firstSolved } }
   history: {},        // daily results: { [day]: guesses, 0 = failed }
   archive: {},        // replayed past puzzles, same shape as history
+  speed: { runs: [] },   // speed runs: [{ day, score }]
+  endless: { runs: [] }, // endless runs: [{ day, score }]
+  counters: {},       // { genius, clutch, hardWins, challengesWon } for badges
+  badges: {},         // { [badge id]: date unlocked }
   github: "",         // the player's GitHub username
   seenHelp: false,
   ...load(),
@@ -42,4 +46,15 @@ export function collect(language) {
   }
   save();
   return !entry;
+}
+
+// Keep the most recent runs only, so storage can't grow without limit.
+export function recordRun(kind, run) {
+  store[kind].runs.push(run);
+  store[kind].runs = store[kind].runs.slice(-200);
+  save();
+}
+
+export function count(counter) {
+  store.counters[counter] = (store.counters[counter] ?? 0) + 1;
 }

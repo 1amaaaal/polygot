@@ -3,78 +3,75 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta property="og:title" content="Polyglot: the daily guess-the-language game">
-  <meta property="og:description" content="A new code snippet every day. Can you name the language in six guesses?">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="https://1amaaaal.github.io/polygot/og.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#0d1117">
+  <title>How to play · Polyglot</title>
+  <meta name="description" content="How to play Polyglot: the clues, hard mode, the arcade, challenges, badges and installing the app.">
+  <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <title>How to play · Polyglot</title>
-  <meta name="description" content="How to play Polyglot: clues, hard mode, challenges, the collection and installing the app.">
   <script type="module" src="src/help.js"></script>
 </head>
 <body>
-  <div class="layout">
-    <main class="wrap prose">
-      <h1 class="page-title">How to play</h1>
-      <p class="lead">Name the programming language in <strong>6 guesses</strong>. A new snippet arrives every day at midnight, your local time.</p>
+  <main class="page narrow prose">
+    <header class="page-head">
+      <h1>How to play</h1>
+      <p class="lead">Name the programming language in six guesses. A new snippet arrives every day at midnight, your local time.</p>
+    </header>
 
-      <h2>Clues</h2>
-      <p>You start with 3 lines of code. Every wrong guess reveals 2 more lines and compares your guess with the answer:</p>
-      <div class="example">
-        <div class="row-cells">
-          <span class="cell name">Java</span>
-          <span class="cell v-miss">Object-oriented</span>
-          <span class="cell v-close">1995 ↑</span>
-          <span class="cell v-hit">Static</span>
-          <span class="cell v-miss">VM</span>
-          <span class="cell v-hit">C-like</span>
-        </div>
+    <h2>Clues</h2>
+    <p>You start with three lines of code. Every wrong guess shows two more lines and compares your guess with the answer:</p>
+    <div class="example">
+      <div class="row-cells">
+        <span class="cell name">Java</span>
+        <span class="cell v-miss">Object-oriented</span>
+        <span class="cell v-close">1995 ↑</span>
+        <span class="cell v-hit">Static</span>
+        <span class="cell v-miss">VM</span>
+        <span class="cell v-hit">C-like</span>
       </div>
-      <ul class="legend">
-        <li><span class="swatch v-hit"></span> Same as the answer</li>
-        <li><span class="swatch v-close"></span> Year within 5 years of the answer</li>
-        <li><span class="swatch v-miss"></span> Different from the answer</li>
-      </ul>
-      <dl class="clues">
-        <dt>Paradigm</dt><dd>Its main style: object-oriented, functional, procedural, multi-paradigm, logic or declarative.</dd>
-        <dt>Year</dt><dd>When it first appeared. The arrow points towards the answer: ↑ means the answer is newer.</dd>
-        <dt>Typing</dt><dd>Static (types checked before running), dynamic (checked while running) or untyped.</dd>
-        <dt>Runs as</dt><dd>How it usually runs: compiled to native code, on a virtual machine, interpreted, JIT-compiled or transpiled to another language.</dd>
-        <dt>Looks like</dt><dd>The syntax family it resembles, such as C-like, Lisp or ML-like.</dd>
-      </dl>
+    </div>
+    <ul class="legend">
+      <li><span class="swatch v-hit"></span>Same as the answer</li>
+      <li><span class="swatch v-close"></span>Year within five years of the answer</li>
+      <li><span class="swatch v-miss"></span>Different from the answer</li>
+    </ul>
+    <dl class="clues">
+      <dt>Paradigm</dt><dd>Its main style: object-oriented, functional, procedural, multi-paradigm, logic or declarative.</dd>
+      <dt>Year</dt><dd>When it first appeared. The arrow points towards the answer: ↑ means the answer is newer.</dd>
+      <dt>Typing</dt><dd>Static (checked before running), dynamic (checked while running) or untyped.</dd>
+      <dt>Runs as</dt><dd>How it usually runs: native code, a virtual machine, an interpreter, a JIT compiler or transpiled to another language.</dd>
+      <dt>Looks like</dt><dd>The syntax family it resembles, such as C-like, Lisp or ML-like.</dd>
+    </dl>
 
-      <h2 id="hard">Hard mode 🔥</h2>
-      <p>Turn it on in Settings (the gear, top right) before your first guess of the day. Syntax colouring is switched off, and every guess has to be a language that could still be the answer given all the clues so far. Hard-mode results get a <code>*</code>, like <code>3/6*</code>.</p>
+    <h2 id="hard">Hard mode</h2>
+    <p>Switch it on in Settings before your first guess of the day. Syntax colouring is turned off, and every guess has to be a language that could still be the answer given the clues so far. Hard-mode scores get a star, like <code>3/6*</code>.</p>
 
-      <h2 id="challenge">Challenges ⚔️</h2>
-      <p>After any round, press <b>Challenge a friend</b> to copy a link to the same snippet, with your score attached. Your friend sees your score and has to beat it. Add your GitHub username in the sidebar so they know who's challenging them.</p>
+    <h2 id="arcade">Arcade</h2>
+    <p>The <a href="arcade.html">arcade</a> has the modes that don't affect your daily streak:</p>
+    <ul>
+      <li><b>Endless</b>: random snippets, one after another, until you miss one.</li>
+      <li><b>Speed run</b>: as many as you can name in 60 seconds. Wrong guesses cost three seconds.</li>
+      <li><b>Practice</b>: a single random snippet.</li>
+      <li><b>Archive</b>: every past daily puzzle.</li>
+    </ul>
 
-      <h2 id="archive">Archive 📅</h2>
-      <p>Missed a day? The <a href="archive.html">archive</a> has every past puzzle. Archive rounds add to your collection but don't change your daily stats, streak or leaderboard points.</p>
+    <h2 id="leaderboard">Leaderboard</h2>
+    <p>There are three boards, each covering the last seven days. Daily wins earn points, from 6 for one guess down to 1 for six; the speed run and endless boards rank your best run of the week. Polyglot has no server, so you're up against a field of bots that play every day, and they're labelled as such.</p>
 
-      <h2 id="collection">Collection 🧩</h2>
-      <p>Every language you solve, in any mode, is added to your <a href="collection.html">collection</a>. Can you collect all 35?</p>
+    <h2 id="challenge">Challenges</h2>
+    <p>After a round, press <b>Challenge a friend</b> to copy a link to the same snippet with your score attached. Add your GitHub username on your <a href="profile.html">profile</a> so they know who sent it.</p>
 
-      <h2 id="leaderboard">Leaderboard</h2>
-      <p>Daily wins earn points: 6 for solving in one guess, down to 1 for six guesses. The leaderboard counts the last 7 days, so a new player can top it in their first week. Polyglot has no server, so there's no global leaderboard yet: you compete against a field of bots that play a simulated game every day.</p>
+    <h2 id="badges">Badges and Wrapped</h2>
+    <p>Your <a href="profile.html">profile</a> keeps your stats, the languages you've collected and 18 badges to unlock. <a href="wrapped.html">Wrapped</a> turns it all into a short summary you can share.</p>
 
-      <h2 id="install">Install it 📱</h2>
-      <p>Polyglot works offline and can be installed like an app. On a phone, open your browser's menu and choose <b>Add to Home screen</b> (Android) or <b>Share → Add to Home Screen</b> (iPhone). On a computer, look for the install icon in the address bar.</p>
+    <h2 id="install">Installing it</h2>
+    <p>Polyglot works offline and can be installed like an app. On Android, choose <b>Add to Home screen</b> from the browser menu; on an iPhone, <b>Share → Add to Home Screen</b>. On a computer, look for the install icon in the address bar.</p>
 
-      <h2>Privacy</h2>
-      <p>Everything (your stats, streak, collection and username) is stored only in your browser. There are no accounts, no tracking and no server.</p>
-
-      <p><a class="btn primary" href="play.html">Play today's puzzle</a></p>
-    </main>
-    <aside class="sidebar" id="sidebar" aria-label="Profile and leaderboard"></aside>
-  </div>
-  <footer class="footer">
-    <a href="https://github.com/1amaaaal/polygot">Source on GitHub</a> · add a snippet, fix a fact, or star it if you like it
-  </footer>
+    <h2>Privacy</h2>
+    <p>Everything is stored in your browser and nowhere else. There are no accounts, no tracking and no server.</p>
+  </main>
 </body>
 </html>

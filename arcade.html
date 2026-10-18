@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arcade · Polyglot</title>
+  <meta name="description" content="More ways to play Polyglot: endless mode, a 60-second speed run, practice rounds and the puzzle archive.">
+  <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="src/arcade.js"></script>
+</head>
+<body>
+  <main class="page">
+    <header class="page-head">
+      <h1>Arcade</h1>
+      <p class="lead">Extra rounds for when one puzzle a day isn't enough. None of them touch your daily streak.</p>
+    </header>
+    <ul class="mode-list" id="mode-list"></ul>
+
+    <section class="section" id="archive">
+      <div class="section-head">
+        <h2>Archive</h2>
+        <p class="muted" id="archive-summary"></p>
+      </div>
+      <ol class="archive-list" id="archive-list"></ol>
+    </section>
+  </main>
+</body>
+</html>

@@ -53,8 +53,9 @@ adding a new `SCHEDULE` entry that starts on a future day.
 
 - Keep it dependency-free: plain HTML, CSS and JavaScript, with no build step.
 - Put game logic in `src/game.js` (pure functions, unit-tested). Each page has its own script
-  (`src/play.js`, `src/home.js`, …), and `src/layout.js` holds the shared header, settings
-  and sidebar.
+  (`src/play.js`, `src/speed.js`, …). `src/layout.js` holds the shared header, footer and
+  settings, and `src/ui.js` the pieces the game pages share: the code panel, clue board and
+  language picker.
 - If you add, rename or remove a file the site loads, update the list in `sw.js` and bump its
   `CACHE` version. `npm test` checks that the list matches the files.
 - Run `npm test`, and the end-to-end test in `tests/e2e/play.mjs` if you changed the UI.

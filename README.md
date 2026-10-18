@@ -37,31 +37,37 @@ x86 Assembly.
 
 ## Features
 
-- **Daily puzzle**, the same for everyone, plus unlimited **practice rounds**
-- **Archive** 📅: replay any past puzzle you missed
-- **Hard mode** 🔥: no syntax colours, and every guess must fit the clues so far
-- **Challenge a friend** ⚔️: send a link to any snippet with your score attached
-- **Share image**: a result card ready to post, as well as the classic emoji grid
-- **Collection** 🧩: collect all 35 languages by solving them
-- **Learn as you play**: who created each language, a fun fact and a link to read more
-  (spot a mistake? every fact has a "report it" link)
-- **Weekly leaderboard**: add your GitHub username and race a field of (clearly labelled) bots
-- **Works offline**: installable as an app on your phone or computer
-- **Colour-blind mode**, dark and light themes, and keyboard and screen-reader support
+The site has four sections, so the extras stay out of the way of the daily puzzle:
 
-Everything (stats, streak, collection, username) is stored in your browser. There are no
-accounts, no tracking and no server.
+- **Today**: the daily puzzle, the same for everyone. Hard mode switches off syntax colours
+  and makes every guess fit the clues so far.
+- **Arcade**: endless mode (random snippets until you miss one), a 60-second speed run,
+  practice rounds and the archive of past puzzles.
+- **Leaderboard**: weekly boards for the daily puzzle, the speed run and endless mode. There's
+  no server, so you're ranked against a field of bots, and they're labelled as bots.
+- **Profile**: your GitHub username, stats, 18 badges, the languages you've collected, and
+  Polyglot Wrapped, a short year-in-review you can share.
+
+Every answer comes with who created the language, a fact about it and a link to read more
+(spot a mistake? every fact has a "report it" link). Results can be shared as an emoji grid,
+an image card or a challenge link to the same snippet. It works offline, installs as an app,
+and has a colour-blind mode, light and dark themes, and keyboard and screen-reader support.
+
+Everything is stored in your browser. There are no accounts, no tracking and no server.
 
 ## Pages
 
 | Page | What's there |
 |---|---|
-| `index.html` | Home: today's puzzle, features, profile and leaderboard |
-| `play.html` | The game (daily, practice, challenges and archive puzzles) |
-| `archive.html` | Every past puzzle, with your result for each |
-| `collection.html` | The languages you've collected |
+| `index.html` | Home |
+| `play.html` | The game: daily, archive (`?day=`), challenge (`?c=`), practice and endless (`?mode=`) |
+| `speed.html` | The speed run |
+| `arcade.html` | The extra modes and the archive |
+| `leaderboard.html` | This week's boards |
+| `profile.html` | Stats, badges and the collection |
+| `wrapped.html` | Polyglot Wrapped |
 | `languages.html` | All 35 languages with their traits and facts, searchable |
-| `help.html` | How to play, hard mode, challenges, installing the app |
+| `help.html` | How to play |
 
 ## Run it locally
 
@@ -99,8 +105,12 @@ seeded shuffle of the snippet list that never puts the same language on two days
 New snippets are added to the end of the list, so past and current puzzles never change.
 The details are in `src/game.js`.
 
-The leaderboard bots work the same way: their daily results come from a seeded random
-generator (`src/leaderboard.js`), so every visitor sees the same standings.
+The leaderboard bots work the same way: their results come from a seeded random generator
+(`src/leaderboard.js`), so every visitor sees the same standings. Badges are defined in
+`src/achievements.js`, each as a target for one number worked out from your saved progress.
+
+The interface uses [IBM Plex](https://github.com/IBM/plex) (SIL Open Font License), served
+from `fonts/`.
 
 ## License
 

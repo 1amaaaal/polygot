@@ -1,76 +1,90 @@
-// Draws a shareable result card (1200x630, the size social networks use for
-// link previews) on a canvas, entirely in the browser.
+// Shareable images (1200x630, the size social networks use for link
+// previews), drawn on a canvas entirely in the browser.
 
 import { TRAIT_KEYS } from "./game.js";
 
+const W = 1200, H = 630;
+const INK = { bg: "#121211", text: "#ecebe7", muted: "#9b9993", rule: "#2e2d2b", empty: "#232321" };
 const COLORS = {
-  normal: { hit: "#2ea043", close: "#bb8009", miss: "#3a414b" },
-  colorblind: { hit: "#d4620b", close: "#1f6feb", miss: "#3a414b" },
+  normal: { hit: "#3b9a5a", close: "#c4912a", miss: "#3a3936" },
+  colorblind: { hit: "#d4620b", close: "#1f6feb", miss: "#3a3936" },
 };
+const SANS = "'IBM Plex Sans', system-ui, sans-serif";
+const MONO = "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace";
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  ctx.fill();
+// Canvas text only uses a web font once it has loaded.
+async function fontsReady() {
+  try {
+    await Promise.all([`600 40px ${SANS}`, `400 40px ${SANS}`, `500 40px ${MONO}`].map((f) => document.fonts.load(f)));
+  } catch { /* fall back to system fonts */ }
 }
 
-export function drawResultCard({ title, score, results, name, colorblind, url }) {
-  const W = 1200, H = 630;
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-  const palette = COLORS[colorblind ? "colorblind" : "normal"];
-  const mono = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
-  const sans = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
-
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#0d1117");
-  bg.addColorStop(1, "#161b22");
-  ctx.fillStyle = bg;
+function canvas() {
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = INK.bg;
   ctx.fillRect(0, 0, W, H);
-
-  // Left: logo, title, score, name.
   ctx.textBaseline = "alphabetic";
-  ctx.font = `800 64px ${mono}`;
-  ctx.fillStyle = "#e6edf3";
-  ctx.fillText("Poly", 80, 140);
-  const polyWidth = ctx.measureText("Poly").width;
-  ctx.fillStyle = "#3fb950";
-  ctx.fillText("glot", 80 + polyWidth, 140);
+  return [c, ctx];
+}
 
-  ctx.font = `600 34px ${sans}`;
-  ctx.fillStyle = "#8b949e";
-  ctx.fillText(title, 80, 210);
+function text(ctx, value, x, y, font, color) {
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.fillText(value, x, y);
+  return ctx.measureText(value).width;
+}
 
-  ctx.font = `800 120px ${sans}`;
-  ctx.fillStyle = "#e6edf3";
-  ctx.fillText(score, 80, 360);
+function frame(ctx, url) {
+  const w = text(ctx, "polyglot", 80, 112, `500 40px ${MONO}`, INK.text);
+  ctx.fillStyle = COLORS.normal.hit;
+  ctx.fillRect(80 + w + 6, 82, 18, 36);
+  ctx.fillStyle = INK.rule;
+  ctx.fillRect(80, H - 112, W - 160, 2);
+  text(ctx, url.replace(/^https?:\/\//, "").replace(/\/$/, ""), 80, H - 64, `400 26px ${MONO}`, INK.muted);
+}
 
-  if (name) {
-    ctx.font = `600 34px ${sans}`;
-    ctx.fillStyle = "#e6edf3";
-    ctx.fillText(`@${name}`, 80, 440);
-  }
-  ctx.font = `500 26px ${sans}`;
-  ctx.fillStyle = "#8b949e";
-  ctx.fillText("Guess the programming language", 80, 520);
-  ctx.fillStyle = "#3fb950";
-  ctx.fillText(url.replace(/^https?:\/\//, "").replace(/\/$/, ""), 80, 562);
+export async function drawResultCard({ title, score, results, name, colorblind, url }) {
+  await fontsReady();
+  const [c, ctx] = canvas();
+  const palette = COLORS[colorblind ? "colorblind" : "normal"];
+  frame(ctx, url);
+  text(ctx, title, 80, 210, `400 34px ${SANS}`, INK.muted);
+  text(ctx, score, 80, 350, `600 128px ${SANS}`, INK.text);
+  if (name) text(ctx, `@${name}`, 80, 430, `400 32px ${SANS}`, INK.text);
 
-  // Right: the coloured grid, one row per guess.
-  const cell = 64, gap = 12;
+  // The coloured grid, one row per guess.
+  const cell = 52, gap = 10;
   const gridW = TRAIT_KEYS.length * cell + (TRAIT_KEYS.length - 1) * gap;
-  const gridH = 6 * cell + 5 * gap;
-  const x0 = W - 80 - gridW, y0 = (H - gridH) / 2;
+  const x0 = W - 80 - gridW, y0 = 150;
   for (let row = 0; row < 6; row++) {
     for (let col = 0; col < TRAIT_KEYS.length; col++) {
       const r = results[row];
-      ctx.fillStyle = r ? palette[r[TRAIT_KEYS[col]]] : "rgba(255,255,255,0.06)";
-      roundRect(ctx, x0 + col * (cell + gap), y0 + row * (cell + gap), cell, cell, 12);
+      ctx.fillStyle = r ? palette[r[TRAIT_KEYS[col]]] : INK.empty;
+      ctx.beginPath();
+      ctx.roundRect(x0 + col * (cell + gap), y0 + row * (cell + gap), cell, cell, 6);
+      ctx.fill();
     }
   }
-  return canvas;
+  return c;
+}
+
+// The last Wrapped slide: a few headline numbers.
+export async function drawWrappedCard({ year, name, figures, personality, url }) {
+  await fontsReady();
+  const [c, ctx] = canvas();
+  frame(ctx, url);
+  text(ctx, `Wrapped ${year}${name ? ` · @${name}` : ""}`, 80, 196, `400 32px ${SANS}`, INK.muted);
+  if (personality) text(ctx, personality, 80, 276, `600 64px ${SANS}`, INK.text);
+  const colW = (W - 160) / figures.length;
+  figures.forEach(([value, label], i) => {
+    const x = 80 + i * colW;
+    text(ctx, String(value), x, 410, `600 72px ${SANS}`, INK.text);
+    text(ctx, label, x, 452, `400 26px ${SANS}`, INK.muted);
+  });
+  return c;
 }
 
 export function canvasToFile(canvas, filename) {

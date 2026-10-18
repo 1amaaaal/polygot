@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard · Polyglot</title>
+  <meta name="description" content="This week's Polyglot standings for the daily puzzle, speed run and endless mode.">
+  <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="src/leaderboard-page.js"></script>
+</head>
+<body>
+  <main class="page narrow">
+    <header class="page-head">
+      <h1>Leaderboard</h1>
+      <p class="lead" id="board-range"></p>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="Board">
+      <button role="tab" id="tab-daily" aria-controls="board-panel" data-board="daily">Daily</button>
+      <button role="tab" id="tab-speed" aria-controls="board-panel" data-board="speed">Speed run</button>
+      <button role="tab" id="tab-endless" aria-controls="board-panel" data-board="endless">Endless</button>
+    </div>
+
+    <section id="board-panel" role="tabpanel">
+      <p class="muted small" id="board-rule"></p>
+      <table class="standings">
+        <thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col" id="col-a"></th><th scope="col" id="col-b"></th></tr></thead>
+        <tbody id="standings"></tbody>
+      </table>
+      <p class="note" id="name-note" hidden>You're listed as “you”. <a href="profile.html">Add your GitHub username</a> to show up by name.</p>
+    </section>
+
+    <p class="muted small">Polyglot has no server, so there are no other real players to rank against yet. The players marked <span class="tag">bot</span> play a simulated game every day; everyone sees the same results.</p>
+  </main>
+</body>
+</html>
