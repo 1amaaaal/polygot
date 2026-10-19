@@ -697,7 +697,9 @@ dialog .close:hover { color: var(--text); background: var(--surface-2); }
 .profile-head h1 a { text-decoration: none; }
 .profile-head > div { flex: 1; min-width: 0; }
 .profile-head p { margin-top: 4px; }
-.name-form { display: flex; gap: 8px; margin-top: 16px; max-width: 440px; }
+.profile-head p { max-width: 62ch; }
+.signin { margin-top: 16px; }
+.signin svg { width: 18px; height: 18px; }
 
 .section .stat-row { margin-bottom: 12px; }
 #arcade-stats { min-height: 1.5em; }

@@ -11,10 +11,11 @@ import {
   encodeChallenge, hardModeViolation, linesToShow, parseSnippets, recordResult,
   scoreLabel, shareText,
 } from "./game.js";
-import { arcadeStandings, weeklyBest } from "./leaderboard.js";
+import { rankLink } from "./boards.js";
 import { celebrateBadges, el, initLayout, onSettingsChange, reportUrl, toast } from "./layout.js";
 import { canvasToFile, drawResultCard } from "./share-image.js";
 import { collect, count, recordRun, save, store } from "./store.js";
+import { pushSoon } from "./sync.js";
 import {
   LanguagePicker, boardRows, confetti, describe, distributionBars, downloadFile, languageOf,
   puzzleDate, renderCode, resolveLanguage, shake, shareOrCopy, siteUrl, untilMidnight,
@@ -175,20 +176,17 @@ function renderResult() {
   updateCountdown();
 }
 
-// Where a finished arcade run puts the player on this week's board.
-function showRank(kind, score, prefix) {
-  const runs = store[kind].runs;
-  const best = weeklyBest(runs, today);
-  const rows = arcadeStandings(kind, { name: store.github || "you", score: best }, today, new Date().getHours());
-  const me = rows.find((r) => !r.bot);
-  const earlier = runs.filter((r) => r !== run?.record).reduce((m, r) => Math.max(m, r.score), 0);
+// Where a finished arcade run puts the player on this week's board. The rank
+// arrives later, so a newer render of the result line wins.
+let rankRequest = 0;
+async function showRank(kind, score, prefix) {
+  const earlier = store[kind].runs.filter((r) => r !== run?.record).reduce((m, r) => Math.max(m, r.score), 0);
   const line = $("result-line");
+  const request = ++rankRequest;
   line.hidden = false;
-  line.replaceChildren(
-    `${prefix} `,
-    score > 0 && score > earlier ? "A new personal best. " : "",
-    best ? el("a", { href: `leaderboard.html#${kind}`, text: `You're #${me.rank} of ${rows.length} on this week's board.` }) : "",
-  );
+  line.replaceChildren(`${prefix} `, score > 0 && score > earlier ? "A new personal best. " : "");
+  const link = await rankLink(kind, today);
+  if (link && request === rankRequest) line.append(link);
 }
 
 function render(animateLast = false) {
@@ -234,6 +232,7 @@ function finish() {
     }
   }
   save();
+  pushSoon();
   render(true);
   celebrateBadges(won ? 2600 : 1200);
   setTimeout(() => $("result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 450);

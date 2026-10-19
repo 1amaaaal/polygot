@@ -25,12 +25,14 @@ export const store = {
   endless: { runs: [] }, // endless runs: [{ day, score }]
   counters: {},       // { genius, clutch, hardWins, challengesWon } for badges
   badges: {},         // { [badge id]: date unlocked }
-  github: "",         // the player's GitHub username
+  github: "",         // the player's GitHub username, set when they sign in
+  sentDays: [],       // daily results already sent to the server
   seenHelp: false,
   ...load(),
 };
 
 export function save() {
+  store.changedAt = Date.now();
   try {
     localStorage.setItem(KEY, JSON.stringify(store));
   } catch { /* storage unavailable: progress lasts for this visit only */ }
@@ -48,8 +50,16 @@ export function collect(language) {
   return !entry;
 }
 
-// Keep the most recent runs only, so storage can't grow without limit.
+// Swap in merged progress (see merge.js) and save it.
+export function replaceStore(data) {
+  Object.assign(store, data);
+  save();
+}
+
+// Keep the most recent runs only, so storage can't grow without limit. The
+// timestamp tells runs apart when progress from two devices is merged.
 export function recordRun(kind, run) {
+  run.at ??= Date.now();
   store[kind].runs.push(run);
   store[kind].runs = store[kind].runs.slice(-200);
   save();

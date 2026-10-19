@@ -1,9 +1,14 @@
 // Shared page chrome: header and navigation, footer, settings, toasts, badge
-// announcements and the offline service worker.
+// announcements and the offline service worker. Every page imports this
+// first, so it is also where a signed-in player's progress is fetched before
+// the page renders.
 
 import { claimNew } from "./achievements.js";
 import { dayNumber } from "./game.js";
 import { save, store } from "./store.js";
+import { pullOnLoad, pushSoon } from "./sync.js";
+
+const loadMessage = await pullOnLoad();
 
 // The four main sections. Other pages belong to one of them for the
 // purposes of highlighting the navigation.
@@ -33,9 +38,10 @@ export const el = (tag, props = {}, ...children) => {
 };
 
 // A GitHub avatar, falling back to the first letter if it can't load.
-export function avatar(name, size) {
-  const img = el("img", { class: "avatar", alt: "", width: size, height: size, loading: "lazy",
-    src: `https://github.com/${encodeURIComponent(name)}.png?size=${size * 2}` });
+export function avatar(name, size, src = `https://github.com/${encodeURIComponent(name)}.png`) {
+  const url = new URL(src);
+  url.searchParams.set(url.hostname === "github.com" ? "size" : "s", size * 2);
+  const img = el("img", { class: "avatar", alt: "", width: size, height: size, loading: "lazy", src: url.href });
   img.addEventListener("error", () => img.replaceWith(el("span", { class: "avatar placeholder", text: name[0].toUpperCase() })));
   return img;
 }
@@ -67,6 +73,7 @@ export function celebrateBadges(delay = 1200) {
   const fresh = claimNew(store);
   if (!fresh.length) return;
   save();
+  pushSoon();
   setTimeout(() => toast(fresh.length === 1 ? `Badge unlocked: ${fresh[0].name}` : `${fresh.length} badges unlocked`), delay);
 }
 
@@ -140,6 +147,7 @@ export function initLayout(section) {
     dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
   }
   applySettings();
+  if (loadMessage) setTimeout(() => toast(loadMessage), 300);
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }

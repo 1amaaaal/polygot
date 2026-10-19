@@ -5,12 +5,14 @@
 import assert from "node:assert/strict";
 import { statSync } from "node:fs";
 import { chromium } from "playwright";
+import { fakeServer } from "./fake-server.mjs";
 
 const BASE = process.argv[2] ?? "http://localhost:8000/";
 const SHOTS = process.argv[3];
 const PAGES = ["index.html", "play.html", "arcade.html", "speed.html", "leaderboard.html", "profile.html",
                "wrapped.html", "languages.html", "help.html"];
 const browser = await chromium.launch();
+const server = fakeServer();
 const errors = [];
 const step = (name) => console.log("ok -", name);
 const url = (path) => new URL(path, BASE).href;
@@ -20,8 +22,9 @@ const shot = async (page, name, opts = {}) => {
   await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true, ...opts });
 };
 
-async function newPage(options = {}) {
+async function newPage({ reachable = true, ...options } = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, ...options });
+  await server.attach(context, { reachable });
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: new URL(BASE).origin });
   // Lets a test move the speed-run clock forward.
   await context.addInitScript(() => {
@@ -64,6 +67,10 @@ const toastText = (page, text) => page.waitForFunction(
 const rows = (page) => page.locator("#board .row-cells:not([aria-hidden])").count();
 const saved = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("polyglot-v1")));
 const action = (page, text) => page.click(`#result-actions button:has-text("${text}")`);
+const until = async (check, what) => {
+  for (let i = 0; i < 50 && !check(); i++) await new Promise((r) => setTimeout(r, 100));
+  assert.ok(check(), what);
+};
 
 // ---------- home and profile ----------
 const page = await newPage();
@@ -75,15 +82,13 @@ step("home page has four sections and a play button");
 await shot(page, "home");
 
 await page.click('.nav a[href="profile.html"]');
-await page.fill("#github-input", "not a name!");
-await page.keyboard.press("Enter");
-await toastText(page, "That isn't a valid GitHub username");
-await page.fill("#github-input", "@octocat");
-await page.keyboard.press("Enter");
+await page.click(".signin");
 await page.waitForSelector(".profile-head h1 a");
+await toastText(page, "Signed in as @octocat");
 assert.equal(await page.textContent(".profile-head h1"), "@octocat");
+assert.equal(new URL(page.url()).search, "", "the sign-in code is removed from the address");
 assert.equal(await page.locator(".badge.unlocked").count(), 0);
-step("a GitHub username is validated and saved on the profile");
+step("signing in with GitHub shows the player's name");
 
 // ---------- daily game ----------
 await page.click('.nav a[href="play.html"]');
@@ -140,11 +145,14 @@ step("sharing: text result, image card and a challenge link");
 
 await page.click('.nav a[href="leaderboard.html"]');
 await page.waitForSelector("#standings tr");
-assert.equal(await page.locator("#standings tr").count(), 9);
+assert.equal(await page.locator("#standings tr").count(), 10);
 assert.equal(await page.locator("#standings .tag").count(), 8, "every bot is labelled");
 assert.match(await page.textContent("#standings tr.me"), /@octocat\s*5\s*1/);
+assert.match(await page.textContent("#standings tr:has-text('@torvalds')"), /^\d+@torvalds61$/, "a real player, not a bot");
 assert.ok(await page.isHidden("#name-note"));
-step("the daily board has 8 labelled bots and @octocat with 5 points");
+assert.ok(await page.isHidden("#offline-note"));
+await until(() => server.db.daily.some((r) => r.user === "octocat" && r.guesses === 2), "the result reached the server");
+step("the result is sent to the server; the board has real players, labelled bots and @octocat with 5 points");
 
 // ---------- endless ----------
 await page.goto(url("arcade.html"));
@@ -193,8 +201,11 @@ await page.waitForSelector("#standings tr.me");
 assert.equal(await page.getAttribute("#tab-speed", "aria-selected"), "true");
 assert.match(await page.textContent("#standings tr.me"), /@octocat\s*3/);
 await page.click("#tab-endless");
+await page.waitForSelector("#board-panel:not([aria-busy])");
 assert.match(await page.textContent("#standings tr.me"), /@octocat\s*2/);
-step("the speed run and endless boards list the player's weekly best");
+await until(() => server.db.runs.some((r) => r.kind === "speed" && r.score === 3), "the speed run reached the server");
+await until(() => server.db.runs.some((r) => r.kind === "endless" && r.score === 2), "the endless run reached the server");
+step("the speed run and endless boards list the player's weekly best, and both runs reach the server");
 
 await page.goto(url("arcade.html"));
 assert.match(await page.textContent(".mode:has-text('Speed run') .mode-stat"), /^Best 3 solved · #\d this week$/);
@@ -223,6 +234,30 @@ await page.click("#share-btn");
 assert.match((await wrapped).suggestedFilename(), /^polyglot-wrapped-\d{4}\.png$/);
 step("Wrapped steps through its slides and makes a share image");
 await shot(page, "wrapped");
+
+// ---------- a second device ----------
+await until(() => server.db.saves.octocat?.endless?.runs.length, "progress is saved to the server");
+const laptop = await newPage();
+await laptop.goto(url("profile.html"));
+await laptop.click(".signin");
+await laptop.waitForSelector(".profile-head h1 a");
+assert.ok(await laptop.locator(".tile.got").count() >= 4, "the collection came from the other device");
+assert.equal(await laptop.textContent("#arcade-stats"), "Speed run best: 3 · Endless best: 2 in a row");
+assert.equal(await laptop.textContent("#stats div:first-child b"), "1", "daily stats came too");
+await laptop.click(".profile-head button:has-text('Sign out')");
+await toastText(laptop, "Signed out");
+await laptop.waitForSelector(".signin");
+step("signing in on a second device brings the progress across, and signing out works");
+
+// ---------- server down ----------
+const down = await newPage({ reachable: false });
+await down.goto(url("leaderboard.html"));
+await down.waitForSelector("#standings tr");
+assert.equal(await down.locator("#standings tr").count(), 9);
+assert.ok(await down.isVisible("#offline-note"));
+assert.ok(await down.isVisible("#name-note"));
+assert.match(await down.textContent("#standings tr.me"), /you/);
+step("without the server, the board falls back to you and the bots");
 
 // ---------- other pages ----------
 await page.goto(url("languages.html"));

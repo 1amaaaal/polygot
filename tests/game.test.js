@@ -286,3 +286,46 @@ test("Wrapped summarizes play and skips empty slides", async () => {
   assert.ok(story.some((x) => x.big === "Parenthesis Whisperer"));
   assert.ok(story.at(-1).final);
 });
+
+test("challenge links drop names that aren't GitHub usernames", () => {
+  const code = encodeChallenge({ index: 1, name: "<img src=x>", guesses: 2, won: true });
+  assert.equal(decodeChallenge(code, 80).name, "");
+});
+
+test("merging progress from two devices keeps everything from both", async () => {
+  const { mergeStores, statsFromHistory } = await import("../src/merge.js");
+  const phone = {
+    settings: { hard: true }, github: "octocat", seenHelp: true,
+    history: { 0: 2, 1: 3 }, archive: {}, stats: statsFromHistory({ 0: 2, 1: 3 }),
+    daily: { day: 2, guesses: ["Go"], hard: false, done: false },
+    collection: { Go: { wins: 2, firstSolved: "2026-10-18" } },
+    speed: { runs: [{ day: 1, score: 9, at: 100, sent: 9 }] },
+    endless: { runs: [{ day: 2, score: 4, at: 300 }] },
+    counters: { genius: 1 }, badges: { "hello-world": "2026-10-18" }, sentDays: [0],
+  };
+  const laptop = {
+    settings: {}, github: "octocat", seenHelp: false,
+    history: { 1: 5, 2: 0 }, archive: { 0: 1 }, stats: statsFromHistory({ 1: 5, 2: 0 }),
+    daily: { day: 2, guesses: ["Go", "C", "Rust", "Java", "Perl", "Lua"], hard: false, done: true },
+    collection: { Go: { wins: 1, firstSolved: "2026-10-17" }, Rust: { wins: 1, firstSolved: "2026-10-19" } },
+    speed: { runs: [{ day: 1, score: 9, at: 100 }, { day: 2, score: 12, at: 200 }] },
+    endless: { runs: [{ day: 2, score: 2, at: 300 }] },
+    counters: { genius: 0, clutch: 2 }, badges: { "hello-world": "2026-10-19", clutch: "2026-10-19" }, sentDays: [1],
+  };
+  const merged = mergeStores(phone, laptop);
+  assert.deepEqual(merged.history, { 0: 2, 1: 5, 2: 0 }, "the server's copy wins a clash");
+  assert.equal(merged.stats.played, 3);
+  assert.equal(merged.stats.wins, 2);
+  assert.deepEqual(merged.archive, { 0: 1 });
+  assert.equal(merged.daily.done, true, "the copy that got further wins");
+  assert.deepEqual(merged.collection, { Go: { wins: 2, firstSolved: "2026-10-17" }, Rust: { wins: 1, firstSolved: "2026-10-19" } });
+  assert.deepEqual(merged.speed.runs, [{ day: 1, score: 9, at: 100, sent: 9 }, { day: 2, score: 12, at: 200 }]);
+  assert.deepEqual(merged.endless.runs, [{ day: 2, score: 4, at: 300 }], "a run that kept growing keeps its best score");
+  assert.deepEqual(merged.counters, { genius: 1, clutch: 2 });
+  assert.deepEqual(merged.badges, { "hello-world": "2026-10-18", clutch: "2026-10-19" });
+  assert.deepEqual(merged.sentDays, [0, 1]);
+  assert.deepEqual(merged.settings, { hard: true }, "settings stay as they are on this device");
+  assert.equal(merged.seenHelp, true);
+  assert.deepEqual(mergeStores(merged, merged).speed.runs, merged.speed.runs, "merging again changes nothing");
+  assert.equal(mergeStores(phone, null), phone);
+});

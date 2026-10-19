@@ -43,9 +43,10 @@ The site has four sections, so the extras stay out of the way of the daily puzzl
   and makes every guess fit the clues so far.
 - **Arcade**: endless mode (random snippets until you miss one), a 60-second speed run,
   practice rounds and the archive of past puzzles.
-- **Leaderboard**: weekly boards for the daily puzzle, the speed run and endless mode. There's
-  no server, so you're ranked against a field of bots, and they're labelled as bots.
-- **Profile**: your GitHub username, stats, 18 badges, the languages you've collected, and
+- **Leaderboard**: weekly boards for the daily puzzle, the speed run and endless mode. Sign in
+  with GitHub to appear on them. While there are only a few players, the boards are topped up
+  with bots, and they're labelled as bots.
+- **Profile**: sign in with GitHub, your stats, 18 badges, the languages you've collected, and
   Polyglot Wrapped, a short year-in-review you can share.
 
 Every answer comes with who created the language, a fact about it and a link to read more
@@ -53,7 +54,8 @@ Every answer comes with who created the language, a fact about it and a link to 
 an image card or a challenge link to the same snippet. It works offline, installs as an app,
 and has a colour-blind mode, light and dark themes, and keyboard and screen-reader support.
 
-Everything is stored in your browser. There are no accounts, no tracking and no server.
+Signing in is optional. Without it, everything stays in your browser. With it, your progress
+syncs between devices and you appear on the leaderboard.
 
 ## Pages
 
@@ -100,7 +102,7 @@ code changes needed. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## How the daily puzzle is chosen
 
-There's no server. Everyone's browser works out the same puzzle from the date, using a
+No server is involved. Everyone's browser works out the same puzzle from the date, using a
 seeded shuffle of the snippet list that never puts the same language on two days in a row.
 New snippets are added to the end of the list, so past and current puzzles never change.
 The details are in `src/game.js`.
@@ -111,6 +113,22 @@ The leaderboard bots work the same way: their results come from a seeded random 
 
 The interface uses [IBM Plex](https://github.com/IBM/plex) (SIL Open Font License), served
 from `fonts/`.
+
+## The server
+
+Accounts, leaderboards and syncing use a [Supabase](https://supabase.com) project. The site
+talks to it directly from the browser (`src/server.js`); what each visitor may read and write
+is enforced by the database's row-level security, set up in `supabase/schema.sql`. Everything
+else works without it, offline included.
+
+To run your own copy:
+
+1. Create a Supabase project and run `supabase/schema.sql` in its SQL editor.
+2. Create a GitHub OAuth app whose callback URL is your project's
+   `https://<project>.supabase.co/auth/v1/callback`, and turn on the GitHub provider in
+   Supabase with its client ID and secret.
+3. Add your site's address to Supabase's redirect URLs.
+4. Put your project URL and publishable key at the top of `src/server.js`.
 
 ## License
 

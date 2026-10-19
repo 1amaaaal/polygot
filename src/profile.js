@@ -2,9 +2,11 @@
 
 import { LANGUAGES } from "../data/languages.js";
 import { evaluate } from "./achievements.js";
-import { GITHUB_NAME, currentStreak, dayNumber } from "./game.js";
+import { currentStreak, dayNumber } from "./game.js";
 import { avatar, celebrateBadges, el, initLayout, toast } from "./layout.js";
+import { currentUser, signIn, signOut } from "./server.js";
 import { save, store } from "./store.js";
+import { flush } from "./sync.js";
 import { distributionBars } from "./ui.js";
 
 initLayout("profile");
@@ -13,38 +15,37 @@ const $ = (id) => document.getElementById(id);
 const today = dayNumber();
 
 // ---------- identity ----------
+const GITHUB_MARK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>';
+
 function renderIdentity() {
+  const user = currentUser();
   const head = $("identity");
-  if (store.github && !head.dataset.editing) {
+  if (user) {
     head.replaceChildren(
-      avatar(store.github, 64),
+      avatar(user.username, 64, user.avatar || undefined),
       el("div", {},
-        el("h1", {}, el("a", { href: `https://github.com/${encodeURIComponent(store.github)}`, target: "_blank",
-                                rel: "noopener", text: `@${store.github}` })),
-        el("p", { class: "muted", text: "Shown on the leaderboard and on challenges you send." })),
-      el("button", { class: "btn ghost small", type: "button", text: "Change",
-        onclick: () => { head.dataset.editing = "1"; renderIdentity(); } }));
+        el("h1", {}, el("a", { href: `https://github.com/${encodeURIComponent(user.username)}`, target: "_blank",
+                                rel: "noopener", text: `@${user.username}` })),
+        el("p", { class: "muted", text: "Signed in with GitHub. Your progress is saved to your account." })),
+      el("button", { class: "btn ghost small", type: "button", text: "Sign out", onclick: async (e) => {
+        e.target.disabled = true;
+        await flush();
+        await signOut();
+        store.github = "";
+        save();
+        renderIdentity();
+        toast("Signed out. Your progress stays in this browser.");
+      } }));
     return;
   }
-  const input = el("input", { type: "text", id: "github-input", placeholder: "your-github-username", value: store.github,
-                              "aria-label": "GitHub username", spellcheck: "false", autocapitalize: "off" });
-  const form = el("form", { class: "name-form", onsubmit: (e) => {
-    e.preventDefault();
-    const name = input.value.trim().replace(/^@/, "");
-    if (name && !GITHUB_NAME.test(name)) {
-      toast("That isn't a valid GitHub username");
-      return;
-    }
-    store.github = name;
-    save();
-    delete head.dataset.editing;
-    renderIdentity();
-    if (name) toast(`Saved as @${name}`);
-  } }, input, el("button", { class: "btn primary", type: "submit", text: "Save" }));
   head.replaceChildren(el("div", {},
     el("h1", { text: "Your profile" }),
-    el("p", { class: "muted", text: "Add your GitHub username to appear by name on the leaderboard. It's only stored in this browser." }),
-    form));
+    el("p", { class: "muted", text: "Sign in to join the leaderboard and keep your streak, badges and collection on every device. Polyglot only sees your public GitHub name and picture." }),
+    el("button", { class: "btn primary signin", type: "button", html: `${GITHUB_MARK} Sign in with GitHub`,
+                   onclick: (e) => {
+                     e.currentTarget.disabled = true;
+                     signIn().catch(() => toast("Couldn't start signing in. Are you online?"));
+                   } })));
 }
 
 // ---------- stats ----------

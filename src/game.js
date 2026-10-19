@@ -199,6 +199,9 @@ function fromBase64Url(code) {
   return new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)));
 }
 
+// GitHub usernames: 1-39 letters, digits or single hyphens, not at the ends.
+export const GITHUB_NAME = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
+
 export function encodeChallenge({ index, name = "", guesses = 0, won = false, hard = false }) {
   return toBase64Url(JSON.stringify({ i: index, n: name, g: won ? guesses : 0, h: hard ? 1 : 0 }));
 }
@@ -208,11 +211,9 @@ export function decodeChallenge(code, snippetCount) {
     const { i, n, g, h } = JSON.parse(fromBase64Url(code));
     if (!Number.isInteger(i) || i < 0 || i >= snippetCount) return null;
     if (!Number.isInteger(g) || g < 0 || g > MAX_GUESSES) return null;
-    return { index: i, name: typeof n === "string" ? n.slice(0, 39) : "", guesses: g, won: g > 0, hard: h === 1 };
+    return { index: i, name: typeof n === "string" && GITHUB_NAME.test(n) ? n : "", guesses: g, won: g > 0, hard: h === 1 };
   } catch {
     return null;
   }
 }
 
-// GitHub usernames: 1-39 letters, digits or single hyphens, not at the ends.
-export const GITHUB_NAME = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;

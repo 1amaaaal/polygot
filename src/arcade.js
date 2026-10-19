@@ -1,8 +1,9 @@
 // The arcade: the extra modes, each with the player's best and weekly rank,
 // and the archive of past daily puzzles.
 
+import { weeklyBoard } from "./boards.js";
 import { LAUNCH, MAX_GUESSES, dailySnippetIndex, dayNumber, parseSnippets } from "./game.js";
-import { arcadeStandings, weeklyBest } from "./leaderboard.js";
+import { weeklyBest } from "./leaderboard.js";
 import { el, initLayout } from "./layout.js";
 import { store } from "./store.js";
 
@@ -11,14 +12,13 @@ initLayout("arcade");
 const today = dayNumber();
 const $ = (id) => document.getElementById(id);
 
-function bestLine(kind, unit) {
+async function bestLine(kind, unit) {
   const runs = store[kind].runs;
   if (!runs.length) return "Not played yet";
   const best = runs.reduce((m, r) => Math.max(m, r.score), 0);
-  const week = weeklyBest(runs, today);
-  if (week === null) return `Best ${best} ${unit}`;
-  const rows = arcadeStandings(kind, { name: "you", score: week }, today, new Date().getHours());
-  return `Best ${best} ${unit} · #${rows.find((r) => !r.bot).rank} this week`;
+  if (weeklyBest(runs, today) === null) return `Best ${best} ${unit}`;
+  const { rows } = await weeklyBoard(kind, today);
+  return `Best ${best} ${unit} · #${rows.find((r) => r.me).rank} this week`;
 }
 
 const MODES = [
@@ -26,17 +26,20 @@ const MODES = [
     text: "Random snippets, six guesses each, until you miss one." },
   { name: "Speed run", href: "speed.html", stat: () => bestLine("speed", "solved"),
     text: "Sixty seconds on the clock. A wrong guess costs three of them." },
-  { name: "Practice", href: "play.html?mode=practice", stat: () => "",
+  { name: "Practice", href: "play.html?mode=practice", stat: async () => "",
     text: "One random snippet with the usual clues. Nothing is recorded but your collection." },
 ];
 
-$("mode-list").replaceChildren(...MODES.map((m) =>
-  el("li", { class: "mode" },
+$("mode-list").replaceChildren(...MODES.map((m) => {
+  const stat = el("span", { class: "mode-stat mono" });
+  m.stat().then((text) => { stat.textContent = text; });
+  return el("li", { class: "mode" },
     el("div", {},
       el("h2", {}, el("a", { href: m.href, text: m.name })),
       el("p", { text: m.text })),
-    el("span", { class: "mode-stat mono", text: m.stat() }),
-    el("a", { class: "btn", href: m.href, text: "Play", "aria-label": `Play ${m.name}` }))));
+    stat,
+    el("a", { class: "btn", href: m.href, text: "Play", "aria-label": `Play ${m.name}` }));
+}));
 
 // ---------- archive ----------
 const SHOWN = 10;

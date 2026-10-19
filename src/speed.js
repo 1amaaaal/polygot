@@ -2,9 +2,10 @@
 // in full, a wrong guess costs three seconds and skipping is free.
 
 import { dailySnippetIndex, dayNumber, parseSnippets } from "./game.js";
-import { arcadeStandings, weeklyBest } from "./leaderboard.js";
+import { rankLink } from "./boards.js";
 import { celebrateBadges, el, initLayout } from "./layout.js";
 import { collect, recordRun, store } from "./store.js";
+import { pushSoon } from "./sync.js";
 import { LanguagePicker, renderCode, resolveLanguage, shake, shareOrCopy, siteUrl } from "./ui.js";
 
 initLayout("arcade");
@@ -104,28 +105,26 @@ function skip() {
   $("guess-input").focus();
 }
 
-function finish() {
+async function finish() {
   playing = false;
   // The snippet on screen when time ran out counts as missed.
   log.push({ language: snippets[current.index].language, solved: false });
   const previousBest = bestEver();
   recordRun("speed", { day: today, score });
+  pushSoon();
 
-  const rows = arcadeStandings("speed", { name: store.github || "you", score: weeklyBest(store.speed.runs, today) },
-                               today, new Date().getHours());
-  const me = rows.find((r) => !r.bot);
   $("game").hidden = true;
   $("done").hidden = false;
   $("done-title").textContent = `${score} ${score === 1 ? "language" : "languages"} in 60 seconds.`;
-  $("done-line").replaceChildren(
-    score > previousBest ? "A new personal best. " : previousBest ? `Your best is ${previousBest}. ` : "",
-    el("a", { href: "leaderboard.html#speed", text: `You're #${me.rank} of ${rows.length} on this week's board.` }));
+  $("done-line").replaceChildren(score > previousBest ? "A new personal best. " : previousBest ? `Your best is ${previousBest}. ` : "");
   $("run-log").replaceChildren(...log.map((entry) =>
     el("li", { class: entry.solved ? "solved" : "missed" },
       el("span", { text: entry.language }),
       el("span", { class: "mono", text: entry.solved ? "solved" : "missed" }))));
   $("again-btn").focus();
   celebrateBadges(800);
+  const link = await rankLink("speed", today);
+  if (link) $("done-line").append(link);
 }
 
 const picker = new LanguagePicker($("guess-form"), $("guess-input"), $("suggestions"), {

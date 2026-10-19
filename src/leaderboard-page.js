@@ -1,37 +1,33 @@
 // This week's boards: daily puzzle points, speed run and endless mode.
 
+import { weeklyBoard } from "./boards.js";
 import { LAUNCH, dayNumber } from "./game.js";
-import { arcadeStandings, playerWeek, standings, weekStart, weeklyBest } from "./leaderboard.js";
+import { weekStart } from "./leaderboard.js";
 import { avatar, el, initLayout } from "./layout.js";
-import { store } from "./store.js";
+import { currentUser } from "./server.js";
 
 initLayout("leaderboard");
 
 const today = dayNumber();
-const hour = new Date().getHours();
 const $ = (id) => document.getElementById(id);
-const name = store.github || "you";
 
 const BOARDS = {
   daily: {
     rule: "Points for daily puzzles solved in the last seven days: 6 for one guess, down to 1 for six.",
     columns: ["Points", "Wins"],
-    rows: () => standings({ name, ...playerWeek(store.history, today) }, today, hour),
     cells: (r) => [r.points, r.wins],
   },
   speed: {
     rule: "Best speed run of the last seven days.",
     columns: ["Best", ""],
-    rows: () => arcadeStandings("speed", { name, score: weeklyBest(store.speed.runs, today) }, today, hour),
     cells: (r) => [r.score ?? "–", ""],
-    empty: el("a", { href: "speed.html", text: "Play a speed run" }),
+    empty: () => el("a", { href: "speed.html", text: "Play a speed run" }),
   },
   endless: {
     rule: "Longest endless run of the last seven days.",
     columns: ["Best", ""],
-    rows: () => arcadeStandings("endless", { name, score: weeklyBest(store.endless.runs, today) }, today, hour),
     cells: (r) => [r.score ?? "–", ""],
-    empty: el("a", { href: "play.html?mode=endless", text: "Start an endless run" }),
+    empty: () => el("a", { href: "play.html?mode=endless", text: "Start an endless run" }),
   },
 };
 
@@ -44,29 +40,44 @@ $("board-range").textContent = from === today
 
 function playerCell(row) {
   const who = el("span", { class: "who" });
-  if (row.bot) who.append(el("span", { class: "avatar placeholder", text: row.name[0].toUpperCase() }), row.name, el("span", { class: "tag", text: "bot" }));
-  else who.append(store.github ? avatar(store.github, 24) : el("span", { class: "avatar placeholder", text: "?" }),
-                  store.github ? `@${store.github}` : "you");
+  if (row.bot) {
+    who.append(el("span", { class: "avatar placeholder", text: row.name[0].toUpperCase() }), row.name,
+               el("span", { class: "tag", text: "bot" }));
+  } else if (row.guest) {
+    who.append(el("span", { class: "avatar placeholder", text: "?" }), "you");
+  } else {
+    who.append(avatar(row.name, 24, row.avatar || undefined),
+               el("a", { href: `https://github.com/${encodeURIComponent(row.name)}`, target: "_blank", rel: "noopener", text: `@${row.name}` }));
+  }
   return who;
 }
 
-function show(id) {
+let shown = null;
+
+async function show(id) {
   const board = BOARDS[id] ? id : "daily";
+  shown = board;
   for (const tab of document.querySelectorAll("[role=tab]")) tab.setAttribute("aria-selected", tab.dataset.board === board);
   const b = BOARDS[board];
   $("board-rule").textContent = b.rule;
   $("col-a").textContent = b.columns[0];
   $("col-b").textContent = b.columns[1];
-  $("standings").replaceChildren(...b.rows().map((r) => {
+  $("board-panel").setAttribute("aria-busy", "true");
+  const { rows, live } = await weeklyBoard(board, today);
+  if (shown !== board) return;   // another tab was picked meanwhile
+  $("board-panel").removeAttribute("aria-busy");
+  $("standings").replaceChildren(...rows.map((r) => {
     const [a, c] = b.cells(r);
-    const empty = !r.bot && b.empty && r.score === null;
-    return el("tr", { class: r.bot ? "" : "me" },
+    const empty = r.me && b.empty && !r.score;
+    return el("tr", { class: r.me ? "me" : "" },
       el("td", { class: "mono", text: r.rank }),
       el("td", {}, playerCell(r)),
-      el("td", { class: "mono" }, empty ? b.empty : String(a)),
+      el("td", { class: "mono" }, empty ? b.empty() : String(a)),
       el("td", { class: "mono", text: c }));
   }));
-  $("name-note").hidden = Boolean(store.github);
+  $("name-note").hidden = Boolean(currentUser());
+  $("offline-note").hidden = live;
+  $("bot-note").hidden = !rows.some((r) => r.bot);
 }
 
 for (const tab of document.querySelectorAll("[role=tab]")) {
