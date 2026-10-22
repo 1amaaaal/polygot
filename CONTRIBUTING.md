@@ -42,12 +42,13 @@ Thanks for helping! Most contributions are new snippets, and those don't need an
 If a language's year or traits are wrong, open an issue or a pull request with a source
 (the language's official site or a reliable reference).
 
-## Why snippets go at the end
+## Snippets and the daily puzzle
 
-The daily puzzle is a fixed shuffle of the first snippets in the file (see `SCHEDULE` in
-`src/game.js`). Adding snippets to the end never changes past or current puzzles; they
-appear in practice mode straight away. A maintainer brings them into the daily rotation by
-adding a new `SCHEDULE` entry that starts on a future day.
+Snippets in `data/snippets.txt` are the arcade's: practice, endless and the speed run. They
+appear there straight away. The daily puzzles are kept private on the server, so that their
+answers can't be read from this repository; they're added by the maintainer with
+`tools/seed.mjs`. Please don't put a snippet you'd like to see as a daily puzzle in a pull
+request, since that would make its answer public; open an issue instead.
 
 ## Code changes
 
@@ -58,4 +59,8 @@ adding a new `SCHEDULE` entry that starts on a future day.
   language picker.
 - If you add, rename or remove a file the site loads, update the list in `sw.js` and bump its
   `CACHE` version. `npm test` checks that the list matches the files.
+- Changes to `supabase/schema.sql` need `npm run test:db` (see the README), and the same
+  change in the end-to-end test's stand-in server, `tests/e2e/fake-server.mjs`.
+- If you change `data/languages.js`, regenerate the server's copy:
+  `node tools/seed.mjs languages > supabase/languages.sql`. `npm test` checks they match.
 - Run `npm test`, and the end-to-end test in `tests/e2e/play.mjs` if you changed the UI.

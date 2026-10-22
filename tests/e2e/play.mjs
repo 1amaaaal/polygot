@@ -41,14 +41,17 @@ async function newPage({ reachable = true, ...options } = {}) {
   return page;
 }
 
-// Helpers that read the game's own logic, so the test knows the answers.
+// Helpers that read the game's own logic, so the test knows the answers. (The
+// stand-in server picks daily puzzles the way the site used to, from
+// snippets.txt; the real server keeps them private.)
 const facts = (page) => page.evaluate(async () => {
   const g = await import(new URL("src/game.js", location.href));
   const { LANGUAGES } = await import(new URL("data/languages.js", location.href));
   const s = g.parseSnippets(await (await fetch("data/snippets.txt")).text());
   const daily = g.dailySnippetIndex(g.dayNumber(), s);
   const other = s.findIndex((x, i) => i !== daily && x.language !== s[daily].language);
-  return { names: LANGUAGES.map((l) => l.name), daily, answer: s[daily].language, other, otherAnswer: s[other].language,
+  return { names: LANGUAGES.map((l) => l.name), daily, answer: s[daily].language, lines: s[daily].lines,
+           other, otherAnswer: s[other].language,
            challenge: g.encodeChallenge({ index: other, name: "octocat", guesses: 4, won: true }) };
 });
 // The language of whatever snippet is on screen, found by its first line.
@@ -58,9 +61,12 @@ const onScreen = (page) => page.evaluate(async () => {
   const lines = [...document.querySelectorAll("#code .line")];
   return s.find((x) => x.lines.length === lines.length && x.lines[0] === lines[0].textContent)?.language;
 });
+// Daily puzzles check each guess with the server; this waits for the reply.
+const settled = (page) => page.waitForFunction(() => document.querySelector("#guess-btn")?.textContent !== "Checking…");
 const guess = async (page, name) => {
   await page.fill("#guess-input", name);
   await page.keyboard.press("Enter");
+  await settled(page);
 };
 const toastText = (page, text) => page.waitForFunction(
   (t) => document.querySelector(".toast")?.textContent.startsWith(t), text);
@@ -104,9 +110,15 @@ const wrong = f.names.find((n) => n !== f.answer && n.length > 3);
 
 assert.equal(await page.textContent("#mode-kicker"), "Daily puzzle");
 assert.equal(await page.locator("#code .line:not(.hidden)").count(), 3);
+const unseen = f.lines.slice(3).filter((l) => l.trim().length > 6);
+const pageText = await page.evaluate(() => document.documentElement.textContent);
+for (const line of unseen) assert.ok(!pageText.includes(line.trim()), `the page holds a line it hasn't shown: ${line}`);
+assert.ok(server.db.dailyCalls.length && server.db.dailyCalls.every((c) => c.answer === null), "the server keeps the answer");
+step("the daily puzzle comes from the server: the page holds only the lines it has shown, and no answer");
 await page.fill("#guess-input", wrong.slice(0, 3));
 await page.waitForSelector("#suggestions:not([hidden]) li");
 await page.keyboard.press("Enter");
+await settled(page);
 assert.equal(await rows(page), 1);
 assert.equal(await page.locator("#code .line:not(.hidden)").count(), 5);
 await guess(page, "Klingon");
@@ -383,7 +395,9 @@ await shot(mobile, "mobile-play");
 step("no page scrolls sideways on mobile");
 
 // ---------- offline ----------
-const off = await newPage();
+// Offline, the server can't be reached either (the stand-in would still
+// answer an offline page, so it is switched off for this visitor).
+const off = await newPage({ reachable: false });
 await off.goto(url("index.html"));
 await off.evaluate(() => navigator.serviceWorker.ready);
 await off.reload();
@@ -392,7 +406,12 @@ for (const p of ["play.html", "speed.html", "profile.html"]) {
   await off.goto(url(p));
   await off.waitForSelector(".topbar");
 }
-step("the site works offline after the first visit");
+await off.goto(url("play.html"));
+await off.waitForSelector("#load-error:not([hidden])");
+assert.match(await off.textContent("#load-error-text"), /Daily puzzles need a connection/);
+await off.goto(url("play.html?mode=practice"));
+await off.waitForSelector("#code .line");
+step("offline, the arcade still works and the daily puzzle says it needs a connection");
 
 assert.deepEqual(errors, [], "no console errors");
 step("no console errors");

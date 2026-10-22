@@ -8,11 +8,10 @@ export const LINES_PER_MISS = 2;
 // Puzzle #1 was played on this local date.
 export const LAUNCH = { year: 2026, month: 10, day: 18 };
 
-// Which snippets the daily puzzle draws from. The daily order is a fixed
-// shuffle of the first `poolSize` snippets in snippets.txt, so adding new
-// snippets at the end of the file never changes past or current puzzles.
-// To bring new snippets into the daily rotation, append an entry whose
-// startDay is a future day number and whose poolSize covers them.
+// How the daily puzzle used to be picked, before the puzzles moved to the
+// server: a fixed shuffle of the snippets in snippets.txt. The site no longer
+// uses this; tools/seed.mjs does, to give the server the puzzles that were
+// already played, and the end-to-end test's stand-in server uses it too.
 export const SCHEDULE = [
   { startDay: 0, poolSize: 80, seed: 2026 },
 ];
@@ -87,6 +86,40 @@ export function dailySnippetIndex(day, snippets, schedule = SCHEDULE) {
 export function linesToShow(totalLines, misses, finished) {
   if (finished) return totalLines;
   return Math.min(totalLines, START_LINES + misses * LINES_PER_MISS);
+}
+
+// The indent and length of a line, which is all a hidden line shows: a bar
+// of the same shape.
+export const lineShape = (text) => [text.length - text.trimStart().length, text.trim().length];
+
+// What a player may see of a puzzle after these guesses (language objects):
+// the lines they've earned, the shape of the rest, the clues, and the answer
+// once it's over. The server's play_daily() returns the same thing for daily
+// puzzles, whose answers the site never has.
+export function puzzleView(lines, answer, guesses) {
+  const results = guesses.map((g) => compare(g, answer));
+  const won = results.some((r) => r.correct);
+  const done = won || guesses.length >= MAX_GUESSES;
+  const shown = linesToShow(lines.length, results.filter((r) => !r.correct).length, done);
+  return {
+    guesses: guesses.map((g) => g.name),
+    results,
+    lines: lines.slice(0, shown),
+    hidden: lines.slice(shown).map(lineShape),
+    total: lines.length,
+    done,
+    won,
+    answer: done ? answer.name : null,
+  };
+}
+
+// Why a snippet isn't fit to be a puzzle, or null if it is.
+export function snippetProblem(snippet, languages) {
+  if (!languages.some((l) => l.name === snippet.language)) return `names an unknown language "${snippet.language}"`;
+  if (snippet.lines.length < 5 || snippet.lines.length > 14) return `has ${snippet.lines.length} lines; 5 to 14 are allowed`;
+  const name = snippet.language.toLowerCase();
+  if (name.length > 2 && snippet.lines.join("\n").toLowerCase().includes(name)) return "spells out its own language";
+  return null;
 }
 
 // "hit" | "close" | "miss" for each trait, plus an arrow for the year.
@@ -183,9 +216,9 @@ export function hardModeViolation(candidate, history) {
 }
 
 // ---------- challenge links ----------
-// A challenge is a snippet plus the challenger's name and score, packed into
-// a URL-safe string. It's encoded rather than encrypted: it only hides the
-// answer from a casual glance at the link.
+// A challenge is a puzzle plus the challenger's name and score, packed into a
+// URL-safe string. The puzzle is either a daily puzzle's day number, played
+// through the server, or the index of an arcade snippet in snippets.txt.
 
 function toBase64Url(text) {
   const bytes = new TextEncoder().encode(text);
@@ -202,16 +235,22 @@ function fromBase64Url(code) {
 // GitHub usernames: 1-39 letters, digits or single hyphens, not at the ends.
 export const GITHUB_NAME = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
 
-export function encodeChallenge({ index, name = "", guesses = 0, won = false, hard = false }) {
-  return toBase64Url(JSON.stringify({ i: index, n: name, g: won ? guesses : 0, h: hard ? 1 : 0 }));
+export function encodeChallenge({ day, index, name = "", guesses = 0, won = false, hard = false }) {
+  const puzzle = Number.isInteger(day) ? { d: day } : { i: index };
+  return toBase64Url(JSON.stringify({ ...puzzle, n: name, g: won ? guesses : 0, h: hard ? 1 : 0 }));
 }
 
-export function decodeChallenge(code, snippetCount) {
+// `today` is the newest day a daily challenge may name (a friend's "today"
+// can be a day ahead of yours).
+export function decodeChallenge(code, snippetCount, today) {
   try {
-    const { i, n, g, h } = JSON.parse(fromBase64Url(code));
-    if (!Number.isInteger(i) || i < 0 || i >= snippetCount) return null;
+    const { d, i, n, g, h } = JSON.parse(fromBase64Url(code));
+    const puzzle = d !== undefined
+      ? (Number.isInteger(d) && d >= 0 && d <= today + 1 ? { day: d } : null)
+      : (Number.isInteger(i) && i >= 0 && i < snippetCount ? { index: i } : null);
+    if (!puzzle) return null;
     if (!Number.isInteger(g) || g < 0 || g > MAX_GUESSES) return null;
-    return { index: i, name: typeof n === "string" && GITHUB_NAME.test(n) ? n : "", guesses: g, won: g > 0, hard: h === 1 };
+    return { ...puzzle, name: typeof n === "string" && GITHUB_NAME.test(n) ? n : "", guesses: g, won: g > 0, hard: h === 1 };
   } catch {
     return null;
   }

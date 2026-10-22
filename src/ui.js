@@ -26,28 +26,31 @@ export function resolveLanguage(text) {
 }
 
 // ---------- code panel ----------
-// Lines from `animateFrom` onwards type themselves in, one after another.
-export function renderCode(pre, lines, { visible = lines.length, plain = false, animateFrom = Infinity } = {}) {
-  pre.replaceChildren(...lines.map((text, i) => {
+// `lines` are the lines the player may read; `hidden` is the [indent, length]
+// of each line after them (see lineShape in game.js), drawn as a grey bar so
+// the page never holds text the player hasn't earned. Lines from
+// `animateFrom` onwards type themselves in, one after another.
+export function renderCode(pre, { lines, hidden = [] }, { plain = false, animateFrom = Infinity } = {}) {
+  const shown = lines.map((text, i) => {
     const line = el("span", { class: "line", "data-n": i + 1 });
-    if (i < visible) {
-      line.innerHTML = (plain ? escapeHtml(text) : highlightLine(text)) || " ";
-      if (i >= animateFrom) {
-        line.classList.add("new");
-        line.style.setProperty("--i", i - animateFrom);
-      }
-    } else {
-      line.classList.add("hidden");
-      line.setAttribute("aria-hidden", "true");
-      if (text.trim()) {
-        const bar = el("span", { class: "bar" });
-        bar.style.marginLeft = `${text.length - text.trimStart().length}ch`;
-        bar.style.width = `${Math.min(text.trim().length, 60)}ch`;
-        line.append(bar);
-      }
+    line.innerHTML = (plain ? escapeHtml(text) : highlightLine(text)) || " ";
+    if (i >= animateFrom) {
+      line.classList.add("new");
+      line.style.setProperty("--i", i - animateFrom);
     }
     return line;
-  }));
+  });
+  const bars = hidden.map(([indent, length], i) => {
+    const line = el("span", { class: "line hidden", "data-n": lines.length + i + 1, "aria-hidden": "true" });
+    if (length) {
+      const bar = el("span", { class: "bar" });
+      bar.style.marginLeft = `${indent}ch`;
+      bar.style.width = `${Math.min(length, 60)}ch`;
+      line.append(bar);
+    }
+    return line;
+  });
+  pre.replaceChildren(...shown, ...bars);
 }
 
 // ---------- clue board ----------

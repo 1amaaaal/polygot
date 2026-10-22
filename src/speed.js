@@ -1,7 +1,7 @@
 // Speed run: name as many languages as possible in 60 seconds. Snippets show
 // in full, a wrong guess costs three seconds and skipping is free.
 
-import { dailySnippetIndex, dayNumber, parseSnippets } from "./game.js";
+import { dayNumber, parseSnippets } from "./game.js";
 import { rankLink } from "./boards.js";
 import { celebrateBadges, el, initLayout } from "./layout.js";
 import { collect, recordRun, store } from "./store.js";
@@ -38,9 +38,8 @@ function showIntro() {
 }
 
 function begin() {
-  // Today's daily snippet is left out so a speed run can't spoil it.
-  const daily = dailySnippetIndex(today, snippets);
-  queue = shuffle(snippets.map((_, i) => i).filter((i) => i !== daily));
+  // Daily puzzles are kept on the server, so no arcade snippet can spoil one.
+  queue = shuffle(snippets.map((_, i) => i));
   log = [];
   score = 0;
   deadline = performance.now() + DURATION;
@@ -59,7 +58,7 @@ function next() {
   if (!queue.length) queue = shuffle(snippets.map((_, i) => i));
   current = { index: queue.pop(), wrong: [] };
   const lines = snippets[current.index].lines;
-  renderCode($("code"), lines, { animateFrom: 0 });
+  renderCode($("code"), { lines }, { animateFrom: 0 });
   $("snippet-info").textContent = `Snippet ${log.length + 1}`;
   $("score-pill").textContent = `${score} solved`;
   picker.clear();

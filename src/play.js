@@ -1,18 +1,23 @@
 // The puzzle page. One snippet at a time, in one of five modes:
 //   daily      today's puzzle, the one that counts for stats and the leaderboard
 //   archive    a past daily puzzle (?day=N)
-//   challenge  a friend's snippet from a challenge link (?c=...)
+//   challenge  a friend's puzzle from a challenge link (?c=...)
 //   practice   a random snippet (?mode=practice)
 //   endless    random snippets until you miss one (?mode=endless)
+//
+// Daily puzzles (today's, the archive's and challenges on them) are played
+// through the server, which keeps their answers: the page only ever has the
+// lines and clues the player has earned. The arcade modes use the public
+// snippets in snippets.txt and work offline.
 
 import { LANGUAGES } from "../data/languages.js";
 import {
-  MAX_GUESSES, compare, currentStreak, dailySnippetIndex, dayNumber, decodeChallenge,
-  encodeChallenge, hardModeViolation, linesToShow, parseSnippets, recordResult,
-  scoreLabel, shareText,
+  MAX_GUESSES, currentStreak, dayNumber, decodeChallenge, encodeChallenge, hardModeViolation,
+  parseSnippets, puzzleView, recordResult, scoreLabel, shareText,
 } from "./game.js";
 import { rankLink } from "./boards.js";
 import { celebrateBadges, el, initLayout, onSettingsChange, reportUrl, toast } from "./layout.js";
+import { playDaily } from "./server.js";
 import { canvasToFile, drawResultCard } from "./share-image.js";
 import { collect, count, recordRun, save, store } from "./store.js";
 import { pushSoon } from "./sync.js";
@@ -28,28 +33,75 @@ initLayout(arcadeMode ? "arcade" : "play");
 const $ = (id) => document.getElementById(id);
 
 // ---------- state ----------
-let snippets = [];
+let snippets = [];      // the arcade snippets, from snippets.txt
 let today = dayNumber();
 let mode = "daily";
-let game = null;        // { index, guesses: [names], hard }
+// The puzzle on screen: `day` for a daily puzzle, played through the server,
+// or `index` for an arcade snippet. `view` is what the player has earned so
+// far (see puzzleView in game.js); it is null while the server is asked.
+let game = null;        // { day | index, guesses: [names], hard, view }
 let archiveDay = null;  // archive mode: the day being replayed
 let challenger = null;  // challenge mode: the decoded link
 let run = null;         // endless mode: { score, seen: Set, record }
 let shownLines = 0;     // lines already on screen, so new ones can type in
+let waiting = false;    // a guess is on its way to the server
+let loads = 0;          // counts puzzle loads, so a late reply can't land on a newer puzzle
 
-const answer = () => languageOf(snippets[game.index].language);
-const results = () => game.guesses.map((g) => compare(languageOf(g), answer()));
-const isWon = () => results().some((r) => r.correct);
-const isFinished = () => isWon() || game.guesses.length >= MAX_GUESSES;
-const dailyIndex = () => dailySnippetIndex(today, snippets);
+const onServer = () => Number.isInteger(game?.day);
+const results = () => game.view.results;
+const isWon = () => game.view.won;
+const isFinished = () => game.view.done;
+const answer = () => languageOf(game.view.answer);   // only known once the puzzle is over
 
-function start(nextMode, index, extra = {}) {
+const localView = (index, guesses) =>
+  puzzleView(snippets[index].lines, languageOf(snippets[index].language), guesses.map(languageOf));
+
+// Takes the server's view, including its saved guesses, which win over ours.
+function adopt(view) {
+  game.view = view;
+  game.guesses = view.guesses;
+  game.hard = view.hard;
+  if (mode === "daily") {
+    store.daily.guesses = view.guesses;
+    store.daily.hard = view.hard;
+    save();
+  }
+}
+
+async function start(nextMode, puzzle, extra = {}) {
   mode = nextMode;
-  game = { index, guesses: extra.guesses ?? [], hard: extra.hard ?? Boolean(store.settings.hard) };
+  const load = ++loads;
+  game = { ...puzzle, guesses: extra.guesses ?? [], hard: extra.hard ?? Boolean(store.settings.hard), view: null };
   shownLines = 0;
   picker.clear();
   showError("");
+  if (!onServer()) {
+    game.view = localView(game.index, game.guesses);
+    render();
+    return;
+  }
+  renderLoading();
+  let view;
+  try {
+    view = await playDaily({ day: game.day, guesses: game.guesses, hard: game.hard });
+  } catch (err) {
+    if (load !== loads) return;
+    // Saved guesses the server won't take (say, from before the puzzles moved
+    // to the server): start this puzzle afresh. Only for a refusal (400), not
+    // when the server itself is failing, which mustn't cost the player anything.
+    if (err.status === 400 && game.guesses.length) {
+      if (mode === "daily") Object.assign(store.daily, { guesses: [], done: false });
+      return start(nextMode, puzzle, { ...extra, guesses: [] });
+    }
+    renderLoadError(err, () => start(nextMode, puzzle, extra));
+    return;
+  }
+  if (load !== loads) return;
+  adopt(view);
   render();
+  // Finished on another device: record it here too, without the fanfare.
+  const recorded = mode === "daily" ? store.daily.done : mode === "archive" ? store.archive[archiveDay] !== undefined : true;
+  if (isFinished() && !recorded) finish({ quiet: true });
 }
 
 function startDaily() {
@@ -58,13 +110,13 @@ function startDaily() {
     store.daily = { day: today, guesses: [], hard: Boolean(store.settings.hard), done: false };
     save();
   }
-  start("daily", dailyIndex(), { guesses: store.daily.guesses, hard: store.daily.hard });
+  start("daily", { day: today }, { guesses: store.daily.guesses, hard: store.daily.hard });
 }
 
-// A random snippet that isn't today's puzzle (no spoilers) or one in `avoid`.
+// A random arcade snippet other than the one on screen or any in `avoid`.
 function randomIndex(avoid = new Set()) {
-  const options = snippets.map((_, i) => i).filter((i) => i !== dailyIndex() && i !== game?.index && !avoid.has(i));
-  const pool = options.length ? options : snippets.map((_, i) => i).filter((i) => i !== dailyIndex());
+  const options = snippets.map((_, i) => i).filter((i) => i !== game?.index && !avoid.has(i));
+  const pool = options.length ? options : snippets.map((_, i) => i);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -76,7 +128,7 @@ function startEndless() {
 function nextEndless() {
   const index = randomIndex(run.seen);
   run.seen.add(index);
-  start("endless", index);
+  start("endless", { index });
   $("guess-input").focus();
 }
 
@@ -108,15 +160,38 @@ function renderHead() {
 }
 
 function renderCodePanel() {
-  const lines = snippets[game.index].lines;
-  const misses = results().filter((r) => !r.correct).length;
-  const visible = linesToShow(lines.length, misses, isFinished());
-  renderCode($("code"), lines, { visible, plain: game.hard && !isFinished(),
-                                 animateFrom: shownLines > 0 ? shownLines : Infinity });
-  shownLines = visible;
+  const { lines, hidden, total } = game.view;
+  renderCode($("code"), { lines, hidden }, { plain: game.hard && !isFinished(),
+                                            animateFrom: shownLines > 0 ? shownLines : Infinity });
+  shownLines = lines.length;
+  $("load-error").hidden = true;
+  $("code").hidden = false;
   $("reveal-info").textContent = isFinished()
-    ? `${answer().name} · ${lines.length} lines`
-    : `${visible} of ${lines.length} lines`;
+    ? `${answer().name} · ${total} lines`
+    : `${lines.length} of ${total} lines`;
+}
+
+// While the server is asked for a puzzle, and if it can't be reached.
+function renderLoading() {
+  renderHead();
+  $("code").replaceChildren();
+  $("reveal-info").textContent = "Loading the puzzle…";
+  $("load-error").hidden = true;
+  $("board").replaceChildren(...boardRows([], []));
+  $("result").hidden = true;
+  $("guess-input").disabled = true;
+  $("guess-btn").disabled = true;
+  $("guess-count").textContent = "";
+}
+
+function renderLoadError(err, retry) {
+  $("reveal-info").textContent = "";
+  $("load-error-text").textContent = err.offline
+    ? "Couldn't reach the server. Daily puzzles need a connection, because their answers are kept there. The arcade works offline."
+    : `Couldn't load the puzzle: ${err.message}`;
+  $("retry-btn").onclick = retry;
+  $("code").hidden = true;
+  $("load-error").hidden = false;
 }
 
 const guessCount = (n) => (n === Infinity ? "no solve" : `${n} ${n === 1 ? "guess" : "guesses"}`);
@@ -150,7 +225,7 @@ function renderResult() {
   const done = isFinished();
   $("result").hidden = !done;
   $("guess-input").disabled = done;
-  $("guess-btn").disabled = done;
+  $("guess-btn").disabled = done || waiting;
   $("guess-count").textContent = done ? "" : `Guess ${game.guesses.length + 1} of ${MAX_GUESSES}`;
   if (done) showError("");
   if (!done) return;
@@ -205,9 +280,13 @@ function updateCountdown() {
 }
 
 // ---------- guessing ----------
-function finish() {
+// Records a finished puzzle. `quiet` is for one finished on another device:
+// it is recorded here too, without the celebration.
+function finish({ quiet = false } = {}) {
   const won = isWon();
   const n = game.guesses.length;
+  // The archive shows the language of puzzles the player has finished.
+  if (onServer()) store.dayAnswers = { ...store.dayAnswers, [game.day]: answer().name };
   if (mode === "daily") {
     store.daily.done = true;
     store.stats = recordResult(store.stats, { day: today, won, guesses: n });
@@ -225,16 +304,17 @@ function finish() {
       // Saved as it grows, so leaving mid-run still keeps the score.
       if (run.record) run.record.score = run.score;
       else recordRun("endless", run.record = { day: today, score: run.score });
-    } else {
+    } else if (!quiet) {
       confetti();
     }
-    if (collect(answer().name)) {
+    if (collect(answer().name) && !quiet) {
       const total = Object.keys(store.collection).length;
       setTimeout(() => toast(`New language collected: ${answer().name} (${total}/${LANGUAGES.length})`), 900);
     }
   }
   save();
   pushSoon();
+  if (quiet) return;
   render(true);
   celebrateBadges(won ? 2600 : 1200);
   setTimeout(() => $("result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 450);
@@ -242,8 +322,8 @@ function finish() {
   if (mode === "daily") setTimeout(openStats, 1800);
 }
 
-function submitGuess(text) {
-  if (isFinished()) return;
+async function submitGuess(text) {
+  if (!game?.view || isFinished() || waiting) return;
   const form = $("guess-form");
   const lang = resolveLanguage(text);
   const problem = !lang ? (text.trim() ? "Not in the language list. Pick one of the suggestions as you type." : "Type a language first")
@@ -256,15 +336,39 @@ function submitGuess(text) {
     return;
   }
   showError("");
-  game.guesses.push(lang.name);
-  picker.clear();
-  if (mode === "daily") {
-    store.daily.guesses = game.guesses;
-    save();
+  const guesses = [...game.guesses, lang.name];
+  if (onServer()) {
+    const load = loads;
+    let view;
+    setWaiting(true);
+    try {
+      view = await playDaily({ day: game.day, guesses, hard: game.hard });
+    } catch (err) {
+      if (load === loads) {
+        shake(form);
+        showError(err.offline ? "Couldn't reach the server, so that guess wasn't counted. Check your connection and try again." : err.message);
+      }
+      return;
+    } finally {
+      setWaiting(false);
+    }
+    if (load !== loads) return;
+    adopt(view);
+  } else {
+    game.guesses = guesses;
+    game.view = localView(game.index, guesses);
   }
+  picker.clear();
   render(true);
   if (isFinished()) finish();
   else $("guess-input").focus();
+}
+
+// The Guess button says so while the server checks a guess.
+function setWaiting(on) {
+  waiting = on;
+  $("guess-btn").textContent = on ? "Checking…" : "Guess";
+  $("guess-btn").disabled = on || Boolean(game?.view?.done);
 }
 
 // A rejected guess is explained under the field and the typing is kept, so
@@ -308,8 +412,8 @@ async function shareImage() {
 }
 
 function challengeFriend() {
-  const code = encodeChallenge({ index: game.index, name: store.github, guesses: game.guesses.length,
-                                 won: isWon(), hard: game.hard });
+  const code = encodeChallenge({ ...(onServer() ? { day: game.day } : { index: game.index }), name: store.github,
+                                 guesses: game.guesses.length, won: isWon(), hard: game.hard });
   const url = new URL("play.html", siteUrl());
   url.searchParams.set("c", code);
   const text = `Can you beat my ${scoreLabel(results(), isWon(), game.hard)} on this Polyglot snippet?`;
@@ -337,7 +441,7 @@ onSettingsChange((settings) => {
   if (game && game.guesses.length === 0) {
     game.hard = Boolean(settings.hard);
     if (mode === "daily") { store.daily.hard = game.hard; save(); }
-    render();
+    if (game.view) render();
   }
 });
 setInterval(() => { if (!$("result").hidden && mode === "daily") updateCountdown(); }, 1000);
@@ -346,31 +450,35 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // ---------- start ----------
+// The arcade snippets. Daily puzzles don't need them, so they still work if
+// this file can't be loaded.
 try {
   const res = await fetch(new URL("../data/snippets.txt", import.meta.url));
   if (!res.ok) throw new Error(res.status);
   snippets = parseSnippets(await res.text());
-
-  const code = params.get("c");
-  challenger = code ? decodeChallenge(code, snippets.length) : null;
-  if (code && !challenger) toast("That challenge link looks broken");
-
-  const puzzle = params.has("day") ? Number(params.get("day")) : null;
-  const pastPuzzle = Number.isInteger(puzzle) && puzzle >= 1 && puzzle <= today;
-  if (puzzle !== null && !pastPuzzle && puzzle !== today + 1) toast("That puzzle isn't available yet");
-
-  if (challenger && challenger.index !== dailyIndex()) start("challenge", challenger.index);
-  else if (!challenger && pastPuzzle) { archiveDay = puzzle - 1; start("archive", dailySnippetIndex(archiveDay, snippets)); }
-  else if (!challenger && params.get("mode") === "practice") start("practice", randomIndex());
-  else if (!challenger && params.get("mode") === "endless") startEndless();
-  else startDaily();   // a challenge on today's snippet is played as the daily puzzle
-
-  if (!store.seenHelp) {
-    store.seenHelp = true;
-    save();
-    $("help-dialog").showModal();
-  }
 } catch (err) {
-  $("reveal-info").textContent = "Couldn't load the snippet. Try refreshing.";
-  console.error(err);
+  console.warn("Couldn't load the arcade snippets:", err.message);
+}
+
+const code = params.get("c");
+challenger = code ? decodeChallenge(code, snippets.length, today) : null;
+if (code && !challenger) toast("That challenge link looks broken");
+
+const puzzle = params.has("day") ? Number(params.get("day")) : null;
+const pastPuzzle = Number.isInteger(puzzle) && puzzle >= 1 && puzzle <= today;
+if (puzzle !== null && !pastPuzzle && puzzle !== today + 1) toast("That puzzle isn't available yet");
+const arcadeReady = snippets.length > 0;
+
+if (challenger?.day === today) startDaily();   // a challenge on today's puzzle is played as the daily puzzle
+else if (challenger && challenger.day !== undefined) start("challenge", { day: challenger.day });
+else if (challenger) start("challenge", { index: challenger.index });
+else if (pastPuzzle) { archiveDay = puzzle - 1; start("archive", { day: archiveDay }); }
+else if (arcadeReady && params.get("mode") === "practice") start("practice", { index: randomIndex() });
+else if (arcadeReady && params.get("mode") === "endless") startEndless();
+else startDaily();
+
+if (!store.seenHelp) {
+  store.seenHelp = true;
+  save();
+  $("help-dialog").showModal();
 }

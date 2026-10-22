@@ -26,7 +26,8 @@ export const store = {
   counters: {},       // { genius, clutch, hardWins, challengesWon } for badges
   badges: {},         // { [badge id]: date unlocked }
   github: "",         // the player's GitHub username, set when they sign in
-  sentDays: [],       // daily results already sent to the server
+  sentDays: [],       // no longer used: the server records daily results itself
+  dayAnswers: {},     // { [day]: language } for daily puzzles the player has finished
   seenHelp: false,
   ...load(),
 };
@@ -52,7 +53,9 @@ export function collect(language) {
 
 // Swap in merged progress (see merge.js) and save it.
 export function replaceStore(data) {
-  Object.assign(store, data);
+  for (const [key, value] of Object.entries(data)) {
+    if (key !== "__proto__" && key !== "constructor") store[key] = value;
+  }
   save();
 }
 

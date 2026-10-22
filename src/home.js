@@ -1,4 +1,4 @@
-import { MAX_GUESSES, dayNumber } from "./game.js";
+import { MAX_GUESSES, dayNumber, lineShape } from "./game.js";
 import { initLayout } from "./layout.js";
 import { store } from "./store.js";
 import { puzzleDate, renderCode } from "./ui.js";
@@ -32,4 +32,4 @@ const TEASER = [
   "    return 0;",
   "}",
 ];
-renderCode($("teaser-code"), TEASER, { visible: 3, animateFrom: 0 });
+renderCode($("teaser-code"), { lines: TEASER.slice(0, 3), hidden: TEASER.slice(3).map(lineShape) }, { animateFrom: 0 });

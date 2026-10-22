@@ -316,6 +316,9 @@ code { font-size: 0.9em; padding: 1px 5px; border-radius: 4px; background: var(-
 .line.new { animation: type 0.5s steps(24, end) both; animation-delay: calc(var(--i, 0) * 0.4s); }
 @keyframes type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 
+.load-error { padding: 16px; }
+.load-error p { margin-bottom: 12px; max-width: 60ch; }
+
 .tok-keyword { color: var(--tok-keyword); }
 .tok-string { color: var(--tok-string); }
 .tok-number { color: var(--tok-number); }

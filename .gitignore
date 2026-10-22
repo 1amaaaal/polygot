@@ -1,2 +1,4 @@
 node_modules/
 .DS_Store
+# Daily puzzles and their answers: never commit these (see tools/seed.mjs).
+private/

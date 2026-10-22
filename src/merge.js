@@ -80,6 +80,7 @@ export function mergeStores(local, remote) {
     daily: mergeDaily(local.daily, remote.daily),
     history,
     archive: { ...local.archive, ...remote.archive },
+    dayAnswers: { ...remote.dayAnswers, ...local.dayAnswers },
     collection: mergeCollection(local.collection, remote.collection),
     speed: { runs: mergeRuns(local.speed?.runs, remote.speed?.runs) },
     endless: { runs: mergeRuns(local.endless?.runs, remote.endless?.runs) },

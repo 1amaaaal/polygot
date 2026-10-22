@@ -5,7 +5,7 @@
 
 import { dayNumber } from "./game.js";
 import { mergeStores } from "./merge.js";
-import { completeSignIn, currentUser, loadSave, sendDaily, sendRun, writeSave } from "./server.js";
+import { completeSignIn, currentUser, loadSave, sendRun, writeSave } from "./server.js";
 import { replaceStore, save, store } from "./store.js";
 
 const PULL_EVERY = 5 * 60 * 1000;
@@ -66,17 +66,12 @@ export async function pullOnLoad() {
   return null;
 }
 
-// Sends results the server doesn't have yet, then the merged progress.
+// Sends arcade runs the server doesn't have yet, then the merged progress.
+// Daily results aren't sent: the server records those itself as the puzzle
+// is played (see playDaily in server.js).
 async function push() {
   const today = dayNumber();
   let sent = false;
-  for (const [key, guesses] of Object.entries(store.history)) {
-    const day = Number(key);
-    if (day < today - 7 || store.sentDays.includes(day)) continue;
-    await sendDaily({ day, guesses, hard: Boolean(store.daily?.day === day && store.daily.hard) });
-    store.sentDays = [...store.sentDays, day].slice(-30);
-    sent = true;
-  }
   for (const kind of ["speed", "endless"]) {
     for (const run of store[kind].runs) {
       if (run.day < today - 7 || run.score === 0 || (run.sent ?? -1) >= run.score) continue;
