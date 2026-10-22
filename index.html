@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Polyglot · guess the programming language</title>
   <meta name="description" content="A daily puzzle for programmers: name the programming language from a code snippet in six guesses.">
-  <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
   <meta property="og:title" content="Polyglot: the daily guess-the-language game">
   <meta property="og:description" content="A new code snippet every day. Can you name the language in six guesses?">
   <meta property="og:type" content="website">
@@ -20,22 +20,21 @@
   <script type="module" src="src/home.js"></script>
 </head>
 <body>
-  <main class="page home">
+  <main class="home">
     <section class="hero">
       <div class="hero-copy">
-        <p class="kicker" id="today-kicker">A daily puzzle</p>
-        <h1>Name the language from a few lines of code.</h1>
+        <h1>Name the language <span class="muted">from a few lines of code.</span></h1>
         <p class="lead">One snippet a day, in one of 35 languages from Python to COBOL. Six guesses. Every miss shows two more lines and tells you how close you were.</p>
         <div class="actions">
           <a class="btn primary" href="play.html" id="play-cta">Play today's puzzle</a>
           <a class="btn" href="arcade.html">Arcade</a>
         </div>
-        <p class="muted small" id="today-status"></p>
+        <p class="status" id="today-status"></p>
       </div>
 
       <figure class="teaser" aria-label="An example round">
         <div class="code-card">
-          <div class="code-head"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>example</span></div>
+          <div class="code-head">3 of 6 lines</div>
           <pre class="code" id="teaser-code" aria-hidden="true"></pre>
         </div>
         <div class="row-cells" aria-hidden="true">
@@ -46,15 +45,20 @@
           <span class="cell v-miss">VM</span>
           <span class="cell v-hit">C-like</span>
         </div>
-        <figcaption class="muted small">Static and C-like, but older and not on a VM. C, maybe?</figcaption>
+        <figcaption>Static and C-like, but older and not on a VM. C, maybe?</figcaption>
       </figure>
     </section>
 
-    <ol class="steps">
-      <li><span class="mono">01</span><b>Read the snippet</b><span>Three lines to start. Comments and names that give it away are left out.</span></li>
-      <li><span class="mono">02</span><b>Guess a language</b><span>Each guess is compared on paradigm, year, typing, how it runs and what it looks like.</span></li>
-      <li><span class="mono">03</span><b>Narrow it down</b><span>Use the clues and the extra lines. Solve it and the language joins your collection.</span></li>
-    </ol>
+    <section class="band" aria-labelledby="band-title">
+      <div class="band-inner">
+        <div>
+          <h2 id="band-title">35 languages, from Fortran to Zig</h2>
+          <p>Every answer is one of these. Their year, typing and syntax are the clues, so knowing them means fewer guesses.</p>
+          <a class="btn primary" href="languages.html">Browse the languages</a>
+        </div>
+        <ul class="lang-wall" id="lang-wall"></ul>
+      </div>
+    </section>
   </main>
 </body>
 </html>

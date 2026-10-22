@@ -19,9 +19,13 @@ const NAV = [
   { href: "profile.html", label: "Profile", id: "profile" },
 ];
 
-const ICON = {
-  help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.4v.6"/><path d="M12 16.8v.2"/></svg>',
-  settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>',
+// Icons are Phosphor (regular weight, MIT licence), copied in so the site
+// needs nothing from outside.
+export const ICON = {
+  help: '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M140,180a12,12,0,1,1-12-12A12,12,0,0,1,140,180ZM128,72c-22.06,0-40,16.15-40,36v4a8,8,0,0,0,16,0v-4c0-11,10.77-20,24-20s24,9,24,20-10.77,20-24,20a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-.72c18.24-3.35,32-17.9,32-35.28C168,88.15,150.06,72,128,72Zm104,56A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg>',
+  settings: '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M40,88H73a32,32,0,0,0,62,0h81a8,8,0,0,0,0-16H135a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16Zm64-24A16,16,0,1,1,88,80,16,16,0,0,1,104,64ZM216,168H199a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16h97a32,32,0,0,0,62,0h17a8,8,0,0,0,0-16Zm-48,24a16,16,0,1,1,16-16A16,16,0,0,1,168,192Z"/></svg>',
+  close: '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>',
+  arrow: '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>',
 };
 
 export const el = (tag, props = {}, ...children) => {
@@ -93,7 +97,7 @@ function renderHeader(section) {
 
 function renderFooter() {
   document.body.append(el("footer", { class: "footer" },
-    el("span", { class: "mono", text: `polyglot · puzzle #${dayNumber() + 1}` }),
+    el("span", { text: `Polyglot · puzzle #${dayNumber() + 1}` }),
     el("nav", { "aria-label": "More" },
       el("a", { href: "languages.html", text: "Languages" }),
       el("a", { href: "help.html", text: "How to play" }),
@@ -128,8 +132,8 @@ function renderSettings() {
         applySettings();
         settingsListeners.forEach((fn) => fn(store.settings));
       } }));
-  document.body.append(el("dialog", { id: "settings-dialog", "aria-labelledby": "settings-title" },
-    el("form", { method: "dialog" }, el("button", { class: "close", "aria-label": "Close", text: "×" })),
+  document.body.append(el("dialog", { id: "settings-dialog", "aria-labelledby": "settings-title", autofocus: "" },
+    el("form", { method: "dialog" }, el("button", { class: "close", "aria-label": "Close", title: "Close", html: ICON.close })),
     el("h2", { id: "settings-title", text: "Settings" }),
     toggle("hard-toggle", "Hard mode", "No syntax colours, and every guess must fit the clues so far.", "hard"),
     toggle("colorblind-toggle", "Colour-blind mode", "Orange and blue instead of green and yellow.", "colorblind"),

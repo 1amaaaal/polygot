@@ -48,6 +48,7 @@ function start(nextMode, index, extra = {}) {
   game = { index, guesses: extra.guesses ?? [], hard: extra.hard ?? Boolean(store.settings.hard) };
   shownLines = 0;
   picker.clear();
+  showError("");
   render();
 }
 
@@ -150,7 +151,11 @@ function renderResult() {
   $("result").hidden = !done;
   $("guess-input").disabled = done;
   $("guess-btn").disabled = done;
-  $("guess-count").textContent = done ? "" : `Guess ${game.guesses.length + 1} of ${MAX_GUESSES}`;
+  const next = game.guesses.length + 1;
+  $("guess-count").textContent = done ? `${game.guesses.length} of ${MAX_GUESSES} guesses used`
+    : next === MAX_GUESSES ? `Last guess, ${next} of ${MAX_GUESSES}` : `Guess ${next} of ${MAX_GUESSES}`;
+  $("guess-count").classList.toggle("last", !done && next === MAX_GUESSES);
+  if (done) showError("");
   if (!done) return;
 
   const a = answer();
@@ -244,15 +249,16 @@ function submitGuess(text) {
   if (isFinished()) return;
   const form = $("guess-form");
   const lang = resolveLanguage(text);
-  const problem = !lang ? (text.trim() ? "Not in the language list" : "Type a language first")
+  const problem = !lang ? (text.trim() ? "Not in the language list. Pick one of the suggestions as you type." : "Type a language first")
     : game.guesses.includes(lang.name) ? `You already guessed ${lang.name}`
     : game.hard ? hardModeViolation(lang, game.guesses.map((g, i) => ({ guess: languageOf(g), result: results()[i] })))
     : null;
   if (problem) {
     shake(form);
-    toast(game.hard && lang && !game.guesses.includes(lang.name) ? `Hard mode: ${problem}` : problem);
+    showError(game.hard && lang && !game.guesses.includes(lang.name) ? `Hard mode: ${problem}` : problem);
     return;
   }
+  showError("");
   game.guesses.push(lang.name);
   picker.clear();
   if (mode === "daily") {
@@ -263,6 +269,15 @@ function submitGuess(text) {
   if (isFinished()) finish();
   else $("guess-input").focus();
 }
+
+// A rejected guess is explained under the field and the typing is kept, so
+// it can be fixed; the message clears as soon as the player edits it.
+function showError(message) {
+  $("guess-error").textContent = message;
+  if (message) $("guess-input").setAttribute("aria-invalid", "true");
+  else $("guess-input").removeAttribute("aria-invalid");
+}
+$("guess-input").addEventListener("input", () => showError(""));
 
 const picker = new LanguagePicker($("guess-form"), $("guess-input"), $("suggestions"), {
   exclude: () => new Set(game?.guesses ?? []),

@@ -41,10 +41,10 @@ $("board-range").textContent = from === today
 function playerCell(row) {
   const who = el("span", { class: "who" });
   if (row.bot) {
-    who.append(el("span", { class: "avatar placeholder", text: row.name[0].toUpperCase() }), row.name,
-               el("span", { class: "tag", text: "bot" }));
+    // Only real players have a picture; the empty slot keeps the names on one edge.
+    who.append(el("span", { class: "avatar-slot" }), row.name, el("span", { class: "tag", text: "bot" }));
   } else if (row.guest) {
-    who.append(el("span", { class: "avatar placeholder", text: "?" }), "you");
+    who.append(el("span", { class: "avatar-slot" }), "you");
   } else {
     who.append(avatar(row.name, 24, row.avatar || undefined),
                el("a", { href: `https://github.com/${encodeURIComponent(row.name)}`, target: "_blank", rel: "noopener", text: `@${row.name}` }));
@@ -70,10 +70,10 @@ async function show(id) {
     const [a, c] = b.cells(r);
     const empty = r.me && b.empty && !r.score;
     return el("tr", { class: r.me ? "me" : "" },
-      el("td", { class: "mono", text: r.rank }),
+      el("td", { text: r.rank }),
       el("td", {}, playerCell(r)),
-      el("td", { class: "mono" }, empty ? b.empty() : String(a)),
-      el("td", { class: "mono", text: c }));
+      el("td", {}, empty ? b.empty() : String(a)),
+      el("td", { text: c }));
   }));
   $("name-note").hidden = Boolean(currentUser());
   $("offline-note").hidden = live;

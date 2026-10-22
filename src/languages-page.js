@@ -13,9 +13,9 @@ function card(l) {
   return el("article", { class: "lang" + (got ? " got" : "") },
     el("header", {},
       el("h2", { text: l.name }),
-      el("span", { class: "year mono", text: l.year }),
-      got ? el("span", { class: "tag", text: "collected" }) : null),
-    el("p", { class: "traits mono", text: [l.paradigm, l.typing, l.execution, l.family].join(" · ") }),
+      el("span", { class: "year", text: l.year }),
+      got ? el("span", { class: "got-mark", text: "Collected" }) : null),
+    el("p", { class: "traits", text: [l.paradigm, l.typing, l.execution, l.family].join(" · ") }),
     el("p", { text: `${l.fact} Created by ${l.creator}.` }),
     el("p", { class: "links" },
       el("a", { href: l.wiki, target: "_blank", rel: "noopener", text: "Wikipedia" }),
@@ -27,7 +27,10 @@ function render() {
   const q = search.value.trim().toLowerCase();
   const shown = sorted.filter((l) => !q || [l.name, l.creator, l.fact, l.paradigm, l.typing, l.execution, l.family, String(l.year)]
     .some((text) => text.toLowerCase().includes(q)));
-  grid.replaceChildren(...(shown.length ? shown.map(card) : [el("p", { class: "muted", text: "No languages match that search." })]));
+  grid.replaceChildren(...(shown.length ? shown.map(card) : [el("div", { class: "search-empty" },
+    el("p", { text: `No language matches “${search.value.trim()}”. Try a name, a creator, a year or a trait like “functional”.` }),
+    el("button", { class: "btn small", type: "button", text: "Clear the search",
+                   onclick: () => { search.value = ""; render(); search.focus(); } }))]));
 }
 
 search.addEventListener("input", render);

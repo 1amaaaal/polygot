@@ -222,6 +222,7 @@ export function untilMidnight() {
 }
 
 // A short burst of brackets on a win, skipped for people who prefer less motion.
+// Most fall in periwinkle; every third is coral.
 export function confetti() {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const glyphs = ["{", "}", "(", ")", "<", ">", "[", "]"];
@@ -243,7 +244,7 @@ export function confetti() {
 export function distributionBars(distribution, mark = 0) {
   const most = Math.max(1, ...distribution);
   return distribution.map((count, i) => {
-    const bar = el("span", { class: "dist-bar" + (mark === i + 1 ? " mark" : ""), text: count });
+    const bar = el("span", { class: "dist-bar" + (mark === i + 1 ? " mark" : count ? "" : " zero"), text: count });
     bar.style.width = `${Math.max(8, (100 * count) / most)}%`;
     return el("div", { class: "dist-row" }, el("span", { text: i + 1 }), bar);
   });

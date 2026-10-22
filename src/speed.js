@@ -60,7 +60,7 @@ function next() {
   current = { index: queue.pop(), wrong: [] };
   const lines = snippets[current.index].lines;
   renderCode($("code"), lines, { animateFrom: 0 });
-  $("snippet-info").textContent = `Snippet ${log.length + 1}`;
+  $("snippet-info").textContent = `Snippet ${log.length + 1} · ${lines.length} lines`;
   $("score-pill").textContent = `${score} solved`;
   picker.clear();
 }
@@ -75,14 +75,22 @@ function tick() {
   else requestAnimationFrame(tick);
 }
 
+function showError(message) {
+  $("guess-error").textContent = message;
+  if (message) $("guess-input").setAttribute("aria-invalid", "true");
+  else $("guess-input").removeAttribute("aria-invalid");
+}
+
 function guess(text) {
   if (!playing) return;
   const lang = resolveLanguage(text);
   if (!lang) {
     shake($("guess-form"));
+    showError(text.trim() ? "Not in the language list. Pick one of the suggestions as you type." : "Type a language first");
     return;
   }
   if (lang.name === snippets[current.index].language) {
+    showError("");
     score += 1;
     log.push({ language: lang.name, solved: true });
     collect(lang.name);
@@ -92,6 +100,7 @@ function guess(text) {
     deadline -= PENALTY;
     picker.clear();
     shake($("guess-form"));
+    showError(`Not ${lang.name}. That cost 3 seconds.`);
     $("timer-text").parentElement.classList.remove("penalty");
     void $("timer-text").offsetWidth;
     $("timer-text").parentElement.classList.add("penalty");
@@ -100,6 +109,7 @@ function guess(text) {
 
 function skip() {
   if (!playing) return;
+  showError("");
   log.push({ language: snippets[current.index].language, solved: false });
   next();
   $("guess-input").focus();
@@ -107,6 +117,7 @@ function skip() {
 
 async function finish() {
   playing = false;
+  showError("");
   // The snippet on screen when time ran out counts as missed.
   log.push({ language: snippets[current.index].language, solved: false });
   const previousBest = bestEver();
@@ -120,12 +131,14 @@ async function finish() {
   $("run-log").replaceChildren(...log.map((entry) =>
     el("li", { class: entry.solved ? "solved" : "missed" },
       el("span", { text: entry.language }),
-      el("span", { class: "mono", text: entry.solved ? "solved" : "missed" }))));
+      el("span", { class: "state", text: entry.solved ? "Solved" : "Missed" }))));
   $("again-btn").focus();
   celebrateBadges(800);
   const link = await rankLink("speed", today);
   if (link) $("done-line").append(link);
 }
+
+$("guess-input").addEventListener("input", () => showError(""));
 
 const picker = new LanguagePicker($("guess-form"), $("guess-input"), $("suggestions"), {
   exclude: () => new Set(current?.wrong ?? []),

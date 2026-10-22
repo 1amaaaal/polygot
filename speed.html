@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Speed run · Polyglot</title>
   <meta name="description" content="Name as many programming languages as you can in 60 seconds.">
-  <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -16,11 +16,9 @@
 </head>
 <body>
   <main class="page narrow">
+    <a class="back" href="arcade.html">Arcade</a>
     <header class="game-head">
-      <div>
-        <p class="kicker"><a href="arcade.html">Arcade</a></p>
-        <h1>Speed run</h1>
-      </div>
+      <h1>Speed run</h1>
       <div class="game-tools">
         <span class="pill" id="score-pill" hidden>0</span>
       </div>
@@ -29,27 +27,25 @@
     <section class="intro" id="intro">
       <p class="lead">You have 60 seconds. Each snippet shows in full; name its language and the next one appears straight away.</p>
       <ul class="rules">
-        <li><span class="mono">+1</span> for each correct answer</li>
-        <li><span class="mono">−3s</span> for each wrong guess</li>
-        <li><span class="mono">skip</span> costs nothing but time</li>
+        <li><b>+1</b>for each correct answer</li>
+        <li><b>−3s</b>for each wrong guess</li>
+        <li><b>Skip</b>costs nothing but time</li>
       </ul>
       <p class="muted" id="intro-best"></p>
-      <button class="btn primary" id="start-btn" type="button">Start</button>
+      <button class="btn primary" id="start-btn" type="button">Start the clock</button>
     </section>
 
     <section id="game" hidden>
       <div class="timer" aria-hidden="true"><div class="timer-bar" id="timer-bar"></div></div>
       <p class="timer-text"><span id="timer-text" role="timer">60</span>s left</p>
       <section class="code-card" aria-label="Code snippet">
-        <div class="code-head">
-          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span id="snippet-info"></span>
-        </div>
+        <div class="code-head" id="snippet-info"></div>
         <pre class="code" id="code" aria-live="polite"></pre>
       </section>
+      <label class="guess-label" for="guess-input">Which language is this?</label>
       <form class="guess-form" id="guess-form" autocomplete="off">
         <div class="combo">
-          <input id="guess-input" type="text" placeholder="Type a language" aria-label="Your guess"
+          <input id="guess-input" type="text" placeholder="Python, Rust, COBOL…" aria-describedby="guess-error"
                  role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions"
                  spellcheck="false" autocapitalize="off">
           <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
@@ -57,10 +53,10 @@
         <button type="submit" class="btn primary">Guess</button>
         <button type="button" class="btn" id="skip-btn">Skip</button>
       </form>
+      <p class="field-error" id="guess-error" role="alert"></p>
     </section>
 
     <section class="result" id="done" hidden aria-live="polite">
-      <p class="kicker">Time's up</p>
       <h2 id="done-title"></h2>
       <p class="result-line" id="done-line"></p>
       <div class="actions">

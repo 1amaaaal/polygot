@@ -3,7 +3,7 @@
 import { LANGUAGES } from "../data/languages.js";
 import { evaluate } from "./achievements.js";
 import { currentStreak, dayNumber } from "./game.js";
-import { avatar, celebrateBadges, el, initLayout, toast } from "./layout.js";
+import { ICON, avatar, celebrateBadges, el, initLayout, toast } from "./layout.js";
 import { currentUser, signIn, signOut } from "./server.js";
 import { save, store } from "./store.js";
 import { flush } from "./sync.js";
@@ -38,14 +38,22 @@ function renderIdentity() {
       } }));
     return;
   }
+  // If GitHub can't be reached, say so under the button and let it be pressed again.
+  const error = el("p", { class: "signin-error", role: "alert" });
   head.replaceChildren(el("div", {},
     el("h1", { text: "Your profile" }),
     el("p", { class: "muted", text: "Sign in to join the leaderboard and keep your streak, badges and collection on every device. Polyglot only sees your public GitHub name and picture." }),
     el("button", { class: "btn primary signin", type: "button", html: `${GITHUB_MARK} Sign in with GitHub`,
                    onclick: (e) => {
-                     e.currentTarget.disabled = true;
-                     signIn().catch(() => toast("Couldn't start signing in. Are you online?"));
-                   } })));
+                     const button = e.currentTarget;
+                     button.disabled = true;
+                     error.textContent = "";
+                     signIn().catch(() => {
+                       button.disabled = false;
+                       error.textContent = "Couldn't reach GitHub. Check your connection and try again.";
+                     });
+                   } }),
+    error));
 }
 
 // ---------- stats ----------
@@ -84,7 +92,7 @@ function renderBadges() {
       el("span", { class: "badge-body" },
         el("b", { text: b.name }),
         el("span", { text: b.text }),
-        b.unlocked ? null : el("span", { class: "badge-progress mono", text: `${b.current}/${b.target}` }))));
+        b.unlocked ? null : el("span", { class: "badge-progress", text: `${b.current} of ${b.target}` }))));
   const shown = Math.max(BADGES_SHOWN, unlocked.length);
   grid.replaceChildren(...tiles.slice(0, shown));
   if (tiles.length > shown) {
@@ -106,9 +114,11 @@ function renderCollection() {
     return el("li", { class: "tile" + (entry ? " got" : ""),
                       title: entry ? `Solved ${entry.wins} ${entry.wins === 1 ? "time" : "times"}, first on ${entry.firstSolved}` : "Not collected yet" },
       el("b", { text: l.name }),
-      el("span", { class: "mono", text: entry ? `×${entry.wins}` : l.year }));
+      el("span", { class: "num", text: entry ? `×${entry.wins}` : l.year }));
   }));
 }
+
+$("wrapped-link").insertAdjacentHTML("beforeend", ICON.arrow);
 
 const played = store.stats.played || Object.keys(store.collection).length;
 if (!played) $("wrapped-text").textContent = "Play a few puzzles and it fills itself in.";

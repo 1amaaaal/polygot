@@ -31,7 +31,7 @@ const MODES = [
 ];
 
 $("mode-list").replaceChildren(...MODES.map((m) => {
-  const stat = el("span", { class: "mode-stat mono" });
+  const stat = el("span", { class: "mode-stat" });
   m.stat().then((text) => { stat.textContent = text; });
   return el("li", { class: "mode" },
     el("div", {},
@@ -69,7 +69,7 @@ async function renderArchive() {
     // Only name the language of puzzles the player has already finished.
     const language = s ? snippets[dailySnippetIndex(day, snippets)].language : "";
     rows.push(el("li", { class: "archive-row" + (s ? " played" : "") },
-      el("span", { class: "num mono", text: `#${day + 1}` }),
+      el("span", { class: "num", text: `#${day + 1}` }),
       el("span", { class: "date", text: date.format(new Date(LAUNCH.year, LAUNCH.month - 1, LAUNCH.day + day)) }),
       el("span", { class: "state", text: s ? `${s} · ${language}` : "" }),
       el("a", { class: "btn small", href: `play.html?day=${day + 1}`, text: s ? "Replay" : "Play" })));

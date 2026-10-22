@@ -64,6 +64,10 @@ const guess = async (page, name) => {
 };
 const toastText = (page, text) => page.waitForFunction(
   (t) => document.querySelector(".toast")?.textContent.startsWith(t), text);
+// A rejected guess is explained under the field, and what was typed stays.
+const fieldError = (page, text) => page.waitForFunction(
+  (t) => document.querySelector("#guess-error")?.textContent.startsWith(t) &&
+         document.querySelector("#guess-input").getAttribute("aria-invalid") === "true", text);
 const rows = (page) => page.locator("#board .row-cells:not([aria-hidden])").count();
 const saved = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("polyglot-v1")));
 const action = (page, text) => page.click(`#result-actions button:has-text("${text}")`);
@@ -106,9 +110,12 @@ await page.keyboard.press("Enter");
 assert.equal(await rows(page), 1);
 assert.equal(await page.locator("#code .line:not(.hidden)").count(), 5);
 await guess(page, "Klingon");
-await toastText(page, "Not in the language list");
+await fieldError(page, "Not in the language list");
+assert.equal(await page.inputValue("#guess-input"), "Klingon", "the typing is kept so it can be fixed");
+await page.type("#guess-input", "s");
+assert.equal(await page.textContent("#guess-error"), "", "editing clears the error");
 await guess(page, wrong);
-await toastText(page, "You already guessed");
+await fieldError(page, "You already guessed");
 step("guesses reveal lines; unknown and repeated guesses are rejected");
 
 await page.click("#settings-btn");
@@ -313,7 +320,7 @@ const banned = await hard.evaluate(async ([wrongName, answer]) => {
   return LANGUAGES.find((l) => l.name !== wrongName && g.hardModeViolation(l, history))?.name;
 }, [wrong, f.answer]);
 await guess(hard, banned);
-await toastText(hard, "Hard mode:");
+await fieldError(hard, "Hard mode:");
 assert.equal(await rows(hard), 1);
 await guess(hard, f.answer);
 await hard.waitForSelector("#result:not([hidden])");

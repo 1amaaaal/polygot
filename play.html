@@ -10,8 +10,8 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://1amaaaal.github.io/polygot/og.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -22,10 +22,7 @@
 <body>
   <main class="page narrow">
     <header class="game-head">
-      <div>
-        <p class="kicker" id="mode-kicker">Daily puzzle</p>
-        <h1 id="mode-title">Loading…</h1>
-      </div>
+      <h1><span id="mode-kicker">Daily puzzle</span> <span class="muted" id="mode-title">Loading…</span></h1>
       <div class="game-tools">
         <span class="pill pill-hard" id="hard-badge" hidden title="Hard mode is on">Hard</span>
         <span class="pill" id="run-pill" hidden></span>
@@ -36,23 +33,21 @@
     <p class="banner" id="challenge-banner" hidden></p>
 
     <section class="code-card" aria-label="Code snippet">
-      <div class="code-head">
-        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span id="reveal-info"></span>
-      </div>
-      <pre class="code" id="code" aria-live="polite"></pre>
+      <div class="code-head" id="reveal-info">Loading the snippet…</div>
+      <pre class="code" id="code" aria-live="polite"><span class="skeleton"><span class="bar" style="width:22ch"></span></span><span class="skeleton"><span class="bar" style="margin-left:4ch;width:30ch"></span></span><span class="skeleton"><span class="bar" style="margin-left:4ch;width:16ch"></span></span></pre>
     </section>
 
+    <label class="guess-label" for="guess-input" id="guess-count">Your guess</label>
     <form class="guess-form" id="guess-form" autocomplete="off">
       <div class="combo">
-        <input id="guess-input" type="text" placeholder="Type a language" aria-label="Your guess"
+        <input id="guess-input" type="text" placeholder="Python, Rust, COBOL…" aria-describedby="guess-error"
                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions"
                spellcheck="false" autocapitalize="off">
         <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
       </div>
       <button type="submit" class="btn primary" id="guess-btn">Guess</button>
     </form>
-    <p class="guess-count" id="guess-count"></p>
+    <p class="field-error" id="guess-error" role="alert"></p>
 
     <section class="board" aria-label="Your guesses">
       <div class="board-head" aria-hidden="true">
@@ -78,8 +73,8 @@
     </section>
   </main>
 
-  <dialog id="help-dialog" aria-labelledby="help-title">
-    <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+  <dialog id="help-dialog" aria-labelledby="help-title" autofocus>
+    <form method="dialog"><button class="close" aria-label="Close" title="Close"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg></button></form>
     <h2 id="help-title">How to play</h2>
     <p>Name the programming language in <strong>six guesses</strong>. You start with three lines of code, and every wrong guess shows two more.</p>
     <p>Each guess is compared with the answer:</p>
@@ -101,8 +96,8 @@
     <p class="muted small">A new puzzle arrives at midnight. <a href="help.html">More about the rules</a></p>
   </dialog>
 
-  <dialog id="stats-dialog" aria-labelledby="stats-title">
-    <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+  <dialog id="stats-dialog" aria-labelledby="stats-title" autofocus>
+    <form method="dialog"><button class="close" aria-label="Close" title="Close"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg></button></form>
     <h2 id="stats-title">Statistics</h2>
     <div class="stat-row" id="stat-grid"></div>
     <h3>Guess distribution</h3>
