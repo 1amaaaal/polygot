@@ -3,7 +3,7 @@
 import { LANGUAGES } from "../data/languages.js";
 import { evaluate } from "./achievements.js";
 import { currentStreak, dayNumber } from "./game.js";
-import { ICON, avatar, celebrateBadges, el, initLayout, toast } from "./layout.js";
+import { avatar, celebrateBadges, el, initLayout, toast } from "./layout.js";
 import { currentUser, signIn, signOut } from "./server.js";
 import { save, store } from "./store.js";
 import { flush } from "./sync.js";
@@ -92,7 +92,7 @@ function renderBadges() {
       el("span", { class: "badge-body" },
         el("b", { text: b.name }),
         el("span", { text: b.text }),
-        b.unlocked ? null : el("span", { class: "badge-progress", text: `${b.current} of ${b.target}` }))));
+        b.unlocked ? null : el("span", { class: "badge-progress mono", text: `${b.current}/${b.target}` }))));
   const shown = Math.max(BADGES_SHOWN, unlocked.length);
   grid.replaceChildren(...tiles.slice(0, shown));
   if (tiles.length > shown) {
@@ -114,11 +114,9 @@ function renderCollection() {
     return el("li", { class: "tile" + (entry ? " got" : ""),
                       title: entry ? `Solved ${entry.wins} ${entry.wins === 1 ? "time" : "times"}, first on ${entry.firstSolved}` : "Not collected yet" },
       el("b", { text: l.name }),
-      el("span", { class: "num", text: entry ? `×${entry.wins}` : l.year }));
+      el("span", { class: "mono", text: entry ? `×${entry.wins}` : l.year }));
   }));
 }
-
-$("wrapped-link").insertAdjacentHTML("beforeend", ICON.arrow);
 
 const played = store.stats.played || Object.keys(store.collection).length;
 if (!played) $("wrapped-text").textContent = "Play a few puzzles and it fills itself in.";

@@ -4,13 +4,10 @@
 import { TRAIT_KEYS } from "./game.js";
 
 const W = 1200, H = 630;
-// Result cards sit on the plum of the code panel; the Wrapped card on the
-// periwinkle of the Wrapped slides. The caret is always periwinkle.
-const PLUM = { bg: "#342e35", text: "#f5f3f6", muted: "#b3abb6", rule: "#4a434c", empty: "#3f3840", caret: "#7778de" };
-const LEAD = { bg: "#7778de", text: "#111111", muted: "#111111", rule: "rgba(17, 17, 17, 0.25)", caret: "#111111" };
+const INK = { bg: "#121211", text: "#ecebe7", muted: "#9b9993", rule: "#2e2d2b", empty: "#232321" };
 const COLORS = {
-  normal: { hit: "#238636", close: "#e3b341", miss: "#4a434c" },
-  colorblind: { hit: "#c2410c", close: "#1f6feb", miss: "#4a434c" },
+  normal: { hit: "#3b9a5a", close: "#c4912a", miss: "#3a3936" },
+  colorblind: { hit: "#d4620b", close: "#1f6feb", miss: "#3a3936" },
 };
 const SANS = "'IBM Plex Sans', system-ui, sans-serif";
 const MONO = "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace";
@@ -18,16 +15,16 @@ const MONO = "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace";
 // Canvas text only uses a web font once it has loaded.
 async function fontsReady() {
   try {
-    await Promise.all([`600 40px ${SANS}`, `400 40px ${SANS}`, `600 40px ${MONO}`].map((f) => document.fonts.load(f)));
+    await Promise.all([`600 40px ${SANS}`, `400 40px ${SANS}`, `500 40px ${MONO}`].map((f) => document.fonts.load(f)));
   } catch { /* fall back to system fonts */ }
 }
 
-function canvas(ink) {
+function canvas() {
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
   const ctx = c.getContext("2d");
-  ctx.fillStyle = ink.bg;
+  ctx.fillStyle = INK.bg;
   ctx.fillRect(0, 0, W, H);
   ctx.textBaseline = "alphabetic";
   return [c, ctx];
@@ -40,23 +37,23 @@ function text(ctx, value, x, y, font, color) {
   return ctx.measureText(value).width;
 }
 
-function frame(ctx, url, ink) {
-  const w = text(ctx, "polyglot", 80, 112, `600 40px ${MONO}`, ink.text);
-  ctx.fillStyle = ink.caret;
+function frame(ctx, url) {
+  const w = text(ctx, "polyglot", 80, 112, `500 40px ${MONO}`, INK.text);
+  ctx.fillStyle = COLORS.normal.hit;
   ctx.fillRect(80 + w + 6, 82, 18, 36);
-  ctx.fillStyle = ink.rule;
+  ctx.fillStyle = INK.rule;
   ctx.fillRect(80, H - 112, W - 160, 2);
-  text(ctx, url.replace(/^https?:\/\//, "").replace(/\/$/, ""), 80, H - 64, `400 26px ${SANS}`, ink.muted);
+  text(ctx, url.replace(/^https?:\/\//, "").replace(/\/$/, ""), 80, H - 64, `400 26px ${MONO}`, INK.muted);
 }
 
 export async function drawResultCard({ title, score, results, name, colorblind, url }) {
   await fontsReady();
-  const [c, ctx] = canvas(PLUM);
+  const [c, ctx] = canvas();
   const palette = COLORS[colorblind ? "colorblind" : "normal"];
-  frame(ctx, url, PLUM);
-  text(ctx, title, 80, 210, `400 34px ${SANS}`, PLUM.muted);
-  text(ctx, score, 80, 350, `600 128px ${SANS}`, PLUM.text);
-  if (name) text(ctx, `@${name}`, 80, 430, `400 32px ${SANS}`, PLUM.text);
+  frame(ctx, url);
+  text(ctx, title, 80, 210, `400 34px ${SANS}`, INK.muted);
+  text(ctx, score, 80, 350, `600 128px ${SANS}`, INK.text);
+  if (name) text(ctx, `@${name}`, 80, 430, `400 32px ${SANS}`, INK.text);
 
   // The coloured grid, one row per guess.
   const cell = 52, gap = 10;
@@ -65,7 +62,7 @@ export async function drawResultCard({ title, score, results, name, colorblind, 
   for (let row = 0; row < 6; row++) {
     for (let col = 0; col < TRAIT_KEYS.length; col++) {
       const r = results[row];
-      ctx.fillStyle = r ? palette[r[TRAIT_KEYS[col]]] : PLUM.empty;
+      ctx.fillStyle = r ? palette[r[TRAIT_KEYS[col]]] : INK.empty;
       ctx.beginPath();
       ctx.roundRect(x0 + col * (cell + gap), y0 + row * (cell + gap), cell, cell, 6);
       ctx.fill();
@@ -77,15 +74,15 @@ export async function drawResultCard({ title, score, results, name, colorblind, 
 // The last Wrapped slide: a few headline numbers.
 export async function drawWrappedCard({ year, name, figures, personality, url }) {
   await fontsReady();
-  const [c, ctx] = canvas(LEAD);
-  frame(ctx, url, LEAD);
-  text(ctx, `Wrapped ${year}${name ? ` · @${name}` : ""}`, 80, 196, `400 32px ${SANS}`, LEAD.muted);
-  if (personality) text(ctx, personality, 80, 276, `600 64px ${SANS}`, LEAD.text);
+  const [c, ctx] = canvas();
+  frame(ctx, url);
+  text(ctx, `Wrapped ${year}${name ? ` · @${name}` : ""}`, 80, 196, `400 32px ${SANS}`, INK.muted);
+  if (personality) text(ctx, personality, 80, 276, `600 64px ${SANS}`, INK.text);
   const colW = (W - 160) / figures.length;
   figures.forEach(([value, label], i) => {
     const x = 80 + i * colW;
-    text(ctx, String(value), x, 410, `600 72px ${SANS}`, LEAD.text);
-    text(ctx, label, x, 452, `400 26px ${SANS}`, LEAD.muted);
+    text(ctx, String(value), x, 410, `600 72px ${SANS}`, INK.text);
+    text(ctx, label, x, 452, `400 26px ${SANS}`, INK.muted);
   });
   return c;
 }

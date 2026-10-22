@@ -151,10 +151,7 @@ function renderResult() {
   $("result").hidden = !done;
   $("guess-input").disabled = done;
   $("guess-btn").disabled = done;
-  const next = game.guesses.length + 1;
-  $("guess-count").textContent = done ? `${game.guesses.length} of ${MAX_GUESSES} guesses used`
-    : next === MAX_GUESSES ? `Last guess, ${next} of ${MAX_GUESSES}` : `Guess ${next} of ${MAX_GUESSES}`;
-  $("guess-count").classList.toggle("last", !done && next === MAX_GUESSES);
+  $("guess-count").textContent = done ? "" : `Guess ${game.guesses.length + 1} of ${MAX_GUESSES}`;
   if (done) showError("");
   if (!done) return;
 

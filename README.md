@@ -111,18 +111,8 @@ The leaderboard bots work the same way: their results come from a seeded random 
 (`src/leaderboard.js`), so every visitor sees the same standings. Badges are defined in
 `src/achievements.js`, each as a target for one number worked out from your saved progress.
 
-## Design
-
-The page is neutral, white or near-black, and one three-colour palette sits on top with one job
-per colour: plum for the code snippet, periwinkle for what you've earned (collected languages,
-Wrapped, the charts) and coral for what's running out (your last guess, the last ten seconds
-of a speed run). Green, yellow and grey only ever appear on the clue board, and every clue is
-readable without colour: a miss is grey, and a near miss always carries an arrow. The tokens
-are at the top of `style.css`.
-
 The interface uses [IBM Plex](https://github.com/IBM/plex) (SIL Open Font License), served
-from `fonts/`: the sans for the interface and the mono for code. Icons are
-[Phosphor](https://phosphoricons.com) (MIT), copied into `src/layout.js`.
+from `fonts/`.
 
 ## The server
 

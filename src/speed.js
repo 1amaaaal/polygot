@@ -60,7 +60,7 @@ function next() {
   current = { index: queue.pop(), wrong: [] };
   const lines = snippets[current.index].lines;
   renderCode($("code"), lines, { animateFrom: 0 });
-  $("snippet-info").textContent = `Snippet ${log.length + 1} · ${lines.length} lines`;
+  $("snippet-info").textContent = `Snippet ${log.length + 1}`;
   $("score-pill").textContent = `${score} solved`;
   picker.clear();
 }
@@ -131,7 +131,7 @@ async function finish() {
   $("run-log").replaceChildren(...log.map((entry) =>
     el("li", { class: entry.solved ? "solved" : "missed" },
       el("span", { text: entry.language }),
-      el("span", { class: "state", text: entry.solved ? "Solved" : "Missed" }))));
+      el("span", { class: "mono", text: entry.solved ? "solved" : "missed" }))));
   $("again-btn").focus();
   celebrateBadges(800);
   const link = await rankLink("speed", today);

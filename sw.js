@@ -3,7 +3,7 @@
 // background ("stale while revalidate"). Bump CACHE when files are renamed
 // or removed so old caches get cleaned up.
 
-const CACHE = "polyglot-v6";
+const CACHE = "polyglot-v7";
 const ASSETS = [
   "./", "index.html", "play.html", "arcade.html", "speed.html", "leaderboard.html", "profile.html",
   "wrapped.html", "languages.html", "help.html", "archive.html", "collection.html",
