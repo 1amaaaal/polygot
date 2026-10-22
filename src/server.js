@@ -1,5 +1,6 @@
 // The connection to the Polyglot server (a Supabase project): signing in
-// with GitHub, sending results and reading the boards. Plain fetch calls,
+// with GitHub, playing the daily puzzle, sending arcade runs and reading the
+// boards. Plain fetch calls,
 // no library, so the site keeps working without a build step, and every call
 // fails quietly when the player is offline.
 //
@@ -114,14 +115,28 @@ export async function signOut() {
   if (token) await call("/auth/v1/logout", { method: "POST", token }).catch(() => {});
 }
 
-// ---------- results ----------
-// Sending the same daily result twice is harmless: the first one stays.
-export async function sendDaily({ day, guesses, hard }) {
-  const token = await accessToken();
-  await call("/rest/v1/daily_results", { method: "POST", token, prefer: "resolution=ignore-duplicates,return=minimal",
-                                         body: { user_id: currentUser().id, day, guesses, hard } });
+// ---------- the daily puzzle ----------
+// The daily puzzles and their answers stay on the server. This sends the
+// guesses so far and gets back what they've earned: { guesses, hard, results,
+// lines, hidden, total, done, won, answer }, where `answer` is only filled in
+// once the puzzle is over (see play_daily in supabase/schema.sql). For a
+// signed-in player the server saves the guesses and records the result
+// itself, and its saved guesses come back if they differ from these.
+//
+// Throws an error with `offline: true` if the server can't be reached, and
+// otherwise one whose message can be shown to the player.
+export async function playDaily({ day, guesses, hard }) {
+  try {
+    const token = currentUser() ? await accessToken().catch(() => null) : null;
+    return await call("/rest/v1/rpc/play_daily", { method: "POST", token,
+                                                    body: { for_day: day, guessed: guesses, hard_mode: hard } });
+  } catch (err) {
+    if (err.status) throw err;
+    throw Object.assign(new Error("Couldn't reach the server"), { offline: true });
+  }
 }
 
+// ---------- arcade runs ----------
 export async function sendRun({ kind, day, score }) {
   const token = await accessToken();
   await call("/rest/v1/arcade_runs", { method: "POST", token, prefer: "return=minimal",

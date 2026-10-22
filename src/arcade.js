@@ -2,7 +2,7 @@
 // and the archive of past daily puzzles.
 
 import { weeklyBoard } from "./boards.js";
-import { LAUNCH, MAX_GUESSES, dailySnippetIndex, dayNumber, parseSnippets } from "./game.js";
+import { LAUNCH, MAX_GUESSES, dayNumber } from "./game.js";
 import { weeklyBest } from "./leaderboard.js";
 import { el, initLayout } from "./layout.js";
 import { store } from "./store.js";
@@ -60,18 +60,17 @@ async function renderArchive() {
   const played = Array.from({ length: today }, (_, day) => status(day)).filter(Boolean).length;
   $("archive-summary").textContent = `${today} past ${today === 1 ? "puzzle" : "puzzles"}, ${played} played.`;
 
-  const res = await fetch(new URL("../data/snippets.txt", import.meta.url));
-  const snippets = parseSnippets(await res.text());
   const date = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" });
   const rows = [];
   for (let day = today - 1; day >= 0; day--) {
     const s = status(day);
-    // Only name the language of puzzles the player has already finished.
-    const language = s ? snippets[dailySnippetIndex(day, snippets)].language : "";
+    // The answers stay on the server; this browser only knows the ones the
+    // player has finished.
+    const language = s ? store.dayAnswers?.[day] : null;
     rows.push(el("li", { class: "archive-row" + (s ? " played" : "") },
       el("span", { class: "num mono", text: `#${day + 1}` }),
       el("span", { class: "date", text: date.format(new Date(LAUNCH.year, LAUNCH.month - 1, LAUNCH.day + day)) }),
-      el("span", { class: "state", text: s ? `${s} · ${language}` : "" }),
+      el("span", { class: "state", text: s ? [s, language].filter(Boolean).join(" · ") : "" }),
       el("a", { class: "btn small", href: `play.html?day=${day + 1}`, text: s ? "Replay" : "Play" })));
   }
   list.replaceChildren(...rows.slice(0, SHOWN));

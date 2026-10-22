@@ -5,9 +5,10 @@ import { readFileSync } from "node:fs";
 import { LANGUAGES } from "../data/languages.js";
 import {
   GITHUB_NAME, SCHEDULE, compare, currentStreak, dailyOrder, dailySnippetIndex, dayNumber,
-  decodeChallenge, encodeChallenge, hardModeViolation, linesToShow, newStats, parseSnippets,
-  points, recordResult, shareText,
+  decodeChallenge, encodeChallenge, hardModeViolation, lineShape, linesToShow, newStats, parseSnippets,
+  points, puzzleView, recordResult, shareText, snippetProblem,
 } from "../src/game.js";
+import { dailyPuzzles, dailySql, languagesSql } from "../tools/seed.mjs";
 import { BOTS, botStats, playerWeek, standings, weekStart } from "../src/leaderboard.js";
 import { highlightLine } from "../src/highlight.js";
 
@@ -177,12 +178,58 @@ test("hard mode only accepts guesses that fit every clue so far", () => {
 test("challenge links round-trip and reject garbage", () => {
   const code = encodeChallenge({ index: 7, name: "octo-cat", guesses: 3, won: true, hard: true });
   assert.match(code, /^[A-Za-z0-9_-]+$/);
-  assert.deepEqual(decodeChallenge(code, 80), { index: 7, name: "octo-cat", guesses: 3, won: true, hard: true });
-  assert.deepEqual(decodeChallenge(encodeChallenge({ index: 2, guesses: 6, won: false }), 80),
+  assert.deepEqual(decodeChallenge(code, 80, 10), { index: 7, name: "octo-cat", guesses: 3, won: true, hard: true });
+  assert.deepEqual(decodeChallenge(encodeChallenge({ index: 2, guesses: 6, won: false }), 80, 10),
     { index: 2, name: "", guesses: 0, won: false, hard: false });
-  assert.equal(decodeChallenge(code, 5), null);           // snippet index out of range
-  assert.equal(decodeChallenge("%%%not-base64", 80), null);
-  assert.equal(decodeChallenge(encodeChallenge({ index: 1, guesses: 9, won: true }), 80), null);
+  assert.equal(decodeChallenge(code, 5, 10), null);       // snippet index out of range
+  assert.equal(decodeChallenge("%%%not-base64", 80, 10), null);
+  assert.equal(decodeChallenge(encodeChallenge({ index: 1, guesses: 9, won: true }), 80, 10), null);
+});
+
+test("challenges on a daily puzzle name its day, never its answer", () => {
+  const code = encodeChallenge({ day: 4, name: "octocat", guesses: 2, won: true });
+  assert.deepEqual(decodeChallenge(code, 80, 4), { day: 4, name: "octocat", guesses: 2, won: true, hard: false });
+  assert.equal(decodeChallenge(code, 80, 3)?.day, 4, "a friend's today can be a day ahead");
+  assert.equal(decodeChallenge(code, 80, 2), null, "but not further");
+  assert.equal(decodeChallenge(encodeChallenge({ day: -1 }), 80, 4), null);
+  assert.ok(!Buffer.from(code, "base64url").toString().includes('"i"'));
+});
+
+test("a puzzle view holds only the lines the guesses have earned", () => {
+  const lines = ["a = 1", "", "  b = 2", "c", "    d = 44", "e", "f", "g"];
+  const fresh = puzzleView(lines, byName.Rust, []);
+  assert.deepEqual(fresh, { guesses: [], results: [], lines: lines.slice(0, 3), hidden: [[0, 1], [4, 6], [0, 1], [0, 1], [0, 1]],
+                            total: 8, done: false, won: false, answer: null });
+  const miss = puzzleView(lines, byName.Rust, [byName.Go]);
+  assert.equal(miss.lines.length, 5);
+  assert.equal(miss.answer, null);
+  const won = puzzleView(lines, byName.Rust, [byName.Go, byName.Rust]);
+  assert.deepEqual([won.done, won.won, won.answer, won.lines, won.hidden], [true, true, "Rust", lines, []]);
+  const lost = puzzleView(lines, byName.Rust, ["Go", "C", "Java", "Python", "Ruby", "Lua"].map((n) => byName[n]));
+  assert.deepEqual([lost.done, lost.won, lost.answer], [true, false, "Rust"]);
+  assert.deepEqual(lineShape("\t  x y  "), [3, 3]);
+});
+
+test("every public snippet passes the same checks the private ones must", () => {
+  for (const s of snippets) assert.equal(snippetProblem(s, LANGUAGES), null, `${s.language}: ${s.lines[0]}`);
+  assert.match(snippetProblem({ language: "Rust", lines: ["// Rust", "a", "b", "c", "d"] }, LANGUAGES), /its own language/);
+  assert.match(snippetProblem({ language: "Klingon", lines: ["a", "b", "c", "d", "e"] }, LANGUAGES), /unknown language/);
+  assert.match(snippetProblem({ language: "Rust", lines: ["a"] }, LANGUAGES), /1 lines/);
+});
+
+test("the seed keeps the puzzles already played and never repeats a language across the switch", () => {
+  const extra = snippets.slice(0, 40).map((s) => ({ ...s, lines: [...s.lines, "// new"] }));
+  const puzzles = dailyPuzzles({ publicSnippets: snippets, privateSnippets: extra, start: 6 });
+  assert.equal(puzzles.length, 46);
+  for (let day = 0; day < 6; day++) assert.equal(puzzles[day], snippets[dailySnippetIndex(day, snippets)]);
+  for (let day = 1; day < puzzles.length; day++) assert.notEqual(puzzles[day].language, puzzles[day - 1].language, `day ${day}`);
+  const sql = dailySql([{ language: "Python", lines: ["print('it''s')", "x", "y", "z", "w"] }], 0);
+  assert.ok(sql.includes(`(0, 'Python', array['print(''it''''s'')', 'x'`), sql);
+});
+
+test("supabase/languages.sql is up to date with data/languages.js", () => {
+  assert.equal(readFileSync(new URL("../supabase/languages.sql", import.meta.url), "utf8"), languagesSql(),
+    "run: node tools/seed.mjs languages > supabase/languages.sql");
 });
 
 test("GitHub usernames are validated", () => {

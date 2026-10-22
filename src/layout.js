@@ -37,9 +37,16 @@ export const el = (tag, props = {}, ...children) => {
   return node;
 };
 
-// A GitHub avatar, falling back to the first letter if it can't load.
-export function avatar(name, size, src = `https://github.com/${encodeURIComponent(name)}.png`) {
-  const url = new URL(src);
+// A GitHub avatar, falling back to the first letter if it can't load. Only
+// GitHub's own picture addresses are used: an image from anywhere else would
+// tell that server who looked at the leaderboard.
+const AVATAR_HOSTS = new Set(["github.com", "avatars.githubusercontent.com"]);
+export function avatar(name, size, src) {
+  let url = null;
+  try { url = new URL(src); } catch { /* none given, or not a URL */ }
+  if (url?.protocol !== "https:" || !AVATAR_HOSTS.has(url.hostname)) {
+    url = new URL(`https://github.com/${encodeURIComponent(name)}.png`);
+  }
   url.searchParams.set(url.hostname === "github.com" ? "size" : "s", size * 2);
   const img = el("img", { class: "avatar", alt: "", width: size, height: size, loading: "lazy", src: url.href });
   img.addEventListener("error", () => img.replaceWith(el("span", { class: "avatar placeholder", text: name[0].toUpperCase() })));
